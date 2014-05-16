@@ -1,0 +1,20 @@
+
+# This is another attemp at making the bridge. The bridge will do the following
+# things:
+#
+#-route osc traffic to child programs
+#-provide a monome interface to switch to those child programs
+#-provide a mixer interface on the monome to send master level adjustments to
+# child programs
+#-provide a monome interface to send tap tempo things messages to sc
+#-provide a place to see what the current tempo setting is
+
+#
+# Will it try to continue to make sure other programs are running?
+#
+
+
+To Do
+- finish implementing tempo control
+- create the console interface
+

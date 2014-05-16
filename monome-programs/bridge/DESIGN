@@ -1,0 +1,64 @@
+
+This is another attempt at making the bridge. The bridge will do the following
+things:
+
+-	route osc traffic to child programs
+-	provide a monome interface to switch to those child programs
+-	provide a mixer interface on the monome to send master level adjustments to
+ 	child programs
+-	provide a monome interface to control the transport
+-	provide a curses interface that will:
+	-	Show info that is sent from serialosc
+	-	Show numerically what the tempo is
+	-	Facilitate setting the tempo by typing it
+	-	Give a way to return to the bridge when a program has crashed or has no
+		button for exiting.
+
+Things the bridge will not do:
+-	Try to make sure other programs are running
+-	Facilitate the actual transport. This is done with supercollider.
+-	start or stop serialosc. It will not crash when serialosc is not running,
+	but it will not be able to do anything with out it. Therefore, serailosc
+	should be started either before or when the bridge is being setup.
+-	
+
+Scope of this program's use: 
+	This program is meant to be general enough to work with harlequin's set up.
+	It is mean to be a general way to use multiple programs with the monome at
+	the same time and also for working with two or one monome at once. It is not
+	currently general enough to work with any type of monome. Only with 128s.
+	Perhaps one day, the program can be made general enough to work with any
+	type. Currently, the bridge can be setup to work with any general program.
+	The only constraint is that it is made to work only with 128s
+
+
+Working with multiple monomes:
+	When the bridge is started, it shall take arguments giving the ports for the
+	primary and the secondary monome. It shall also keep track of what prefix
+	each monome currently has selected. When the two monomes have different
+	prefixes selected, they will be serviced as if they were separate monomes.
+	When they have the same prefix (i.e. they are working for the same program),
+	they will together be serviced together as one monome. When this is the
+	case, for example, presses on the secondary monome will send button messages
+	for rows 8-15 and can be lit by sending messages to those rows. The two
+	monomes should then be arranged such that when they are working together,
+	they will look like a 256 (so right next to each other with the long sides
+	touching. Secondary monome closer to the user than the primary).
+
+Protocol:
+	When programs are switched, the monome needs to be cleared out before
+	performing the switch to the new program. The bridge should be responsible
+	for doing this automatically, so that other programs don't need to take care
+	of it. Thus, when a program exits back to the bridge, the bridge will clear
+	all LEDs, then draw its lighting on the monome. When a new program is
+	chosen, the bridge should again clear all the LEDs, and then send the show
+	message to the program.
+
+	Some programs may need to be able to know when they have both a primary and
+	a secondary monome are connected. This shall be kept track of by keeping a
+	show count. When a program receives a show message, a counter is
+	incremented. When the count is at two, more than one monome is dedicated to
+	this program. When a program is exited, the count can decremented. 
+
+To Do
+

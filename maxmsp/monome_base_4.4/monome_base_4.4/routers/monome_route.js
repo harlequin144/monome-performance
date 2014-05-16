@@ -1,0 +1,1 @@
+var prefix = "none"autowatch = 1;outlets = 2;function anything(){	var a = arrayfromargs(messagename, arguments);	if(a[0] == "prefix") {		prefix = a[1];		outlet(1,prefix);	}	var s = a[0].split("/");	if("/"+s[1] == prefix) outlet(0,s[2]);}

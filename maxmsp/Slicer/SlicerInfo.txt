@@ -1,0 +1,16 @@
+To do:
+-time control/ quantization
+    -quantization on off
+    -good sync with looper.
+-visual improvement
+-led inversion
+-sampler spiffination
+    -reverse. 
+    -playback speed
+-button control
+    -flip
+    -cutter (like mlr)
+-looper
+-saving
+    -playlists
+    -songs
