@@ -33,13 +33,14 @@ Transport {
 
 		OSCdef(\trans_stop, { this.stop; }, path+/+'stop');
 		OSCdef(\trans_start, { this.start; }, path+/+'start');
+		OSCdef(\trans_toggle, { this.toggle; }, path+/+'toggle');
 		OSCdef(\trans_tap, {|msg, time| this.tap(time) }, path+/+'tap');
 		OSCdef(\trans_clear_tap, { this.clear_tap }, path+/+'clear_tap');
 		OSCdef(\trans_set_bpm, {|msg| this.setBpm(msg[1]) },path+/+'set_bpm');
 
 			// This is a bug right here. No validation of the subtraction
 			// value
-		OSCdef(\trans_tempo_add_bpm, 
+		OSCdef(\trans_tempo_add_bpm,
 			{|msg| this.setBpm( this.getBpm()+msg[1] ) },
 			path+/+'tempo_add_bpm');
 
@@ -113,6 +114,8 @@ Transport {
 		bridge.sendMsg("/bridge/stop");
 		otherPorts.do({|port| port.sendMsg("/dseq/stop") });
 	}
+
+	toggle { if(on){ this.stop }{ this.start } }
 
 	tap { |time|
 		var newPeriod;

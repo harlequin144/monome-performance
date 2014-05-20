@@ -40,17 +40,17 @@ Micronome {
 	var seqPlaySpeed = 0;
 
 	// Osc/Midi
-	var monome, bridge;
+	var bridge;
 	var midiOut; // Keeps track of what notes are on microbrute-side
 
 
-	*new {|midiUid, bridgePortNum = 8000, monomePortNum = 13090|
-		^super.new.init(midiUid, bridgePortNum, monomePortNum)
+	*new {|midiUid, bridgePortNum = 8000|
+		^super.new.init(midiUid, bridgePortNum)
 	}
 
-	init {|midiUid, bridgePortNum = 8000, monomePortNum = 13090|
+	init {|midiUid, bridgePortNum = 8000|
 		bridge = NetAddr.new("localhost", bridgePortNum);
-		monome = NetAddr.new("localhost", monomePortNum);
+		//monome = NetAddr.new("localhost", monomePortNum);
 		midiOut = MIDIOut(0, midiUid);
 		midiOut.latency = 0;
 
@@ -74,7 +74,7 @@ Micronome {
 
 		OSCdef(\micronome_hide, { show = false; }, path+/+'hide');
 		OSCdef(\micronome_tick, {|msg| this.tickResponder(msg[1]) }, '/tick');
-		OSCdef(\micronome_show, { show = true; this.show }, path+/+'show');
+		OSCdef(\micronome_show, { show = true; this.show;}, path+/+'show');
 
 		this.show();
 	}
@@ -247,8 +247,8 @@ Micronome {
 		}{
 			~trans.tap(time);
 			if(~trans.on){
-				monome.sendMsg(lPath+/+"set", 2,0,1);
-				monome.sendMsg(lPath+/+"set", 3,0,1);
+				bridge.sendMsg(lPath+/+"set", 2,0,1);
+				bridge.sendMsg(lPath+/+"set", 3,0,1);
 			}
 		}
 	}
@@ -256,15 +256,15 @@ Micronome {
 	playSeqButtonPress {
 		if(seqState == 2){ // Already on, turn off
 			seqState = 0;
-			monome.sendMsg( lPath+/+"row",0, 3, 80, 171);
-			monome.sendMsg( lPath+/+"row",0, 4, 80, 171);
+			bridge.sendMsg( lPath+/+"row",0, 3, 80, 171);
+			bridge.sendMsg( lPath+/+"row",0, 4, 80, 171);
 			this.killNotesOn();
 			if(noteStack.size > 0){ this.noteOn(abs(noteStack.last())) }
 		}{
 			// was off or recording, turn on
 			seqState = 2;
-			monome.sendMsg( lPath+/+"row",0,3, 92, 171);
-			monome.sendMsg( lPath+/+"row",0,4, 92, 171);
+			bridge.sendMsg( lPath+/+"row",0,3, 92, 171);
+			bridge.sendMsg( lPath+/+"row",0,4, 92, 171);
 		};
 		seqPos = 0;
 	}
@@ -275,12 +275,12 @@ Micronome {
 			if(recordSilently){ // turn recording off
 				recordSilently = false;
 				seqState = 0;
-				monome.sendMsg( lPath+/+"row",0,3, 80, 171);
-				monome.sendMsg( lPath+/+"row",0,4, 80, 171);
+				bridge.sendMsg( lPath+/+"row",0,3, 80, 171);
+				bridge.sendMsg( lPath+/+"row",0,4, 80, 171);
 			}{
 				recordSilently = true;
-				monome.sendMsg( lPath+/+"row",0,3, 81, 171);
-				monome.sendMsg( lPath+/+"row",0,4, 82, 171);
+				bridge.sendMsg( lPath+/+"row",0,3, 81, 171);
+				bridge.sendMsg( lPath+/+"row",0,4, 82, 171);
 			}
 		}{
 			// Seq is off or in play mode
@@ -291,8 +291,8 @@ Micronome {
 
 			seqState = 1; // turn on seq in record mode
 			recordSilently = false; // first press keeps it audible
-			monome.sendMsg( lPath+/+"row",0,3, 83, 171);
-			monome.sendMsg( lPath+/+"row",0,4, 83, 171);
+			bridge.sendMsg( lPath+/+"row",0,3, 83, 171);
+			bridge.sendMsg( lPath+/+"row",0,4, 83, 171);
 		};
 		seqPos = 0;
 	}
@@ -302,7 +302,7 @@ Micronome {
 			var newSelected = xPos;
 			if( selectedSeq != newSelected ){
 				selectedSeq = newSelected;
-				monome.sendMsg( lPath+/+"row",0,5, 80 + (2**selectedSeq), 171);
+				bridge.sendMsg( lPath+/+"row",0,5, 80 + (2**selectedSeq), 171);
 			}
 		};
 		seqPos = 0;
@@ -311,22 +311,22 @@ Micronome {
 	setSeqPlaySpeed {|xPos|
 		if((xPos >=0) && (xPos <= 3)){
 			seqPlaySpeed = xPos;
-			monome.sendMsg( lPath+/+"row", 0,6, 2**xPos, 0);
+			bridge.sendMsg( lPath+/+"row", 0,6, 2**xPos, 0);
 		}
 	}
 
 	transToggle {
 		if( ~trans.on ){
 			~trans.stop;
-			monome.sendMsg(lPath +/+ "set", 2,0,0);
-			monome.sendMsg(lPath +/+ "set", 3,0,0);
-			monome.sendMsg(lPath +/+ "row",0,1, 80,171);
-			monome.sendMsg(lPath +/+ "row",0,2, 0);
+			bridge.sendMsg(lPath +/+ "set", 2,0,0);
+			bridge.sendMsg(lPath +/+ "set", 3,0,0);
+			bridge.sendMsg(lPath +/+ "row",0,1, 80,171);
+			bridge.sendMsg(lPath +/+ "row",0,2, 0);
 			if(seqState == 2){ this.killNotesOn() };
 		}{
 			~trans.start;
-			monome.sendMsg(lPath +/+ "set", 2,0,1);
-			monome.sendMsg(lPath +/+ "set", 3,0,1);
+			bridge.sendMsg(lPath +/+ "set", 2,0,1);
+			bridge.sendMsg(lPath +/+ "set", 3,0,1);
 		}
 	}
 
@@ -335,7 +335,7 @@ Micronome {
 			pitchRange = val;
 			midiOut.sysex(Int8Array[16rB0, 16r65, 16r0, 16rB0, 16r64, 16r0,
 				16rB0, 16r06, val]);
-			monome.sendMsg(lPath +/+ "row", 0,0,
+			bridge.sendMsg(lPath +/+ "row", 0,0,
 				if(val<4) {1 + (16*( (2**val)-1 ))} {241},
 				if(val<4) {0} { 2**(val-4)-1} );
 		}
@@ -354,7 +354,7 @@ Micronome {
 			hold = false;
 		}
 		{ hold = true };
-		monome.sendMsg(lPath +/+ "row", 0,7,hold.if{12}{3}+80, 171);
+		bridge.sendMsg(lPath +/+ "row", 0,7,hold.if{12}{3}+80, 171);
 	}
 
 		tickResponder {|tick|
@@ -383,12 +383,12 @@ Micronome {
 		if(show){
 			case
 			{tick%48 == 0}{
-				monome.sendMsg(lPath +/+ "row",0,1, 83,171);
-				monome.sendMsg(lPath +/+ "row",0,2, 3,0);
+				bridge.sendMsg(lPath +/+ "row",0,1, 83,171);
+				bridge.sendMsg(lPath +/+ "row",0,2, 3,0);
 			}
 			{tick%48 == 24}{
-				monome.sendMsg(lPath +/+ "row",0,1, 92,171);
-				monome.sendMsg(lPath +/+ "row",0,2, 12,0);
+				bridge.sendMsg(lPath +/+ "row",0,1, 92,171);
+				bridge.sendMsg(lPath +/+ "row",0,2, 12,0);
 			}
 		}
 	}
@@ -401,7 +401,7 @@ Micronome {
 		var pitchG4 = (pitchRange >=5 );
 		var selState = (selectedSeq <2);
 		// Left side
-		monome.sendMsg(lPath +/+ "map", 0,0,
+		bridge.sendMsg(lPath +/+ "map", 0,0,
 			( pitchG4.if{241}{ 1+(16*((2**pitchRange)-1)) } ) +
 			( if(~trans.on){12}{0} ),
 			80, 0, // Tap and clear - let tick handle update this
@@ -412,14 +412,14 @@ Micronome {
 			83 + (9*hold.if{1}{0}) // Hold
 		);
 		// Right Side
-		monome.sendMsg(lPath +/+ "map",8,0,
+		bridge.sendMsg(lPath +/+ "map",8,0,
 			(pitchG4).if{ 2**(pitchRange-4)-1 }{0},
 			171,0,171,171,171,0,171);
 	}
 
 	hide{
 		show = false;
-		bridge.sendMsg("/bridge/show");
+		bridge.sendMsg(path+/+"hide"); //sending a request to bridge to hide
 		controlPressCount = 0;
 		if(hold == false){
 			this.killNotesOn();
