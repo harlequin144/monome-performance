@@ -14,14 +14,29 @@ class Monome(): #(liblo.Address):
 		self.monomePort = monomePort
 		self.clientPort = clientPort
 		self.prefix = prefix
-		self.monome_intensity = 0;
+		self.led_intensity = 0;
 		self.show = True
-
 		self.trans_press_count = 0
+		liblo.send(self.monomePort, '/bridge/grid/led/intensity', 0)
+
 
 	def clear_leds(self):
 		liblo.send(self.monomePort, '/bridge/grid/led/all', 0)
 		self.trans_press_count = 0
+
+	def dec_intensity(self):
+		self.led_intensity = self.led_intensity - 1;
+		if self.led_intensity < 0:
+			self.led_intensity = 0
+		liblo.send(self.monomePort, '/bridge/grid/led/intensity',
+				self.led_intensity)
+
+	def inc_intensity(self):
+		self.led_intensity = self.led_intensity + 1 ;
+		if self.led_intensity > 15:
+			self.led_intensity = 15
+		liblo.send(self.monomePort, '/bridge/grid/led/intensity',
+				self.led_intensity)
 
 
 	def switch_to_client(self, prefix, port):
