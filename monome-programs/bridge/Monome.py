@@ -1,51 +1,161 @@
 import liblo
 
-# This class is meant to help encapsulate data that is specific to each
-# monome and to give some convienence methods for lighting the monomes. It
-# will not hold any variables that are used for the bridge as a whole, for
-# example variables that are specific to the transport.
+# This class is meant to help encapsulate data and methods that are specific
+# to each monome and to give some convienence methods for lighting the monomes
+# and forwarding presses from them to clients.  Whenever an operation becomes
+# monome-specific, the operation happens with this object. For example once
+# the bridge knows that an led message must go to monome x, the actual led
+# message is sent using this object. To keep things speedy, some information
+# that is local to the bridge as a whole is kept in each monome object,
+# specifically transport state and the list of clients. This is done to the
+# end of achieving speed and elegance.
 
 
 class Monome(): #(liblo.Address):
-	def __init__(self, monomePort, clientPort, prefix):
-		#liblo.Server.__init__(self, listen_port)
+	def __init__(self, monome_port, lClients, rClients):
 
 		# Monome interface State variables
-		self.monomePort = monomePort
-		self.clientPort = clientPort
-		self.prefix = prefix
+		self.monome_port = monome_port
+		self.client_port = 8000
+		self.prefix = 'bridge'
 		self.led_intensity = 0;
-		self.show = True
+		self.l_clients = lClients
+		self.r_clients = rClients
+
+		# Transport
+		self.trans = False
+		self.trans_factor = 12
 		self.trans_press_count = 0
-		liblo.send(self.monomePort, '/bridge/grid/led/intensity', 0)
+
+		self.client_map = [0,0,0,24,24,0,0,0]
+			# The client map is kept static and is used only to save computation
+			# when lighting up the bright. This list can be used every time since
+			# the clients are meant to never be changed dynamically
+
+		# Initialization
+		for x, (lPre, lPort), (rPre, rPort) in zip(range(4), lClients, rClients):
+			if lPre != '':
+				self.client_map[2*x] = self.client_map[2*x] + 3
+			if rPre != '':
+				self.client_map[2*x] = self.client_map[2*x] + 2**6 + 2**7
+
+		liblo.send(self.monome_port, '/bridge/grid/led/intensity', 0)
+
+	#
+	# Monome Key Press Function
+	#		This baby does the main job of the program
+	#
+
+	def key_press(self, x, y, z):
+		if self.prefix == 'bridge':
+			self.bridge_press(x,y,z)
+		else:
+			self.forward_press(x,y,z)
 
 
-	def clear_leds(self):
-		liblo.send(self.monomePort, '/bridge/grid/led/all', 0)
-		self.trans_press_count = 0
+	#
+	# Led Convenience Functions
+	#
+
+	def light_clear(self):
+		liblo.send(self.monome_port, '/bridge/grid/led/all', 0)
+
+	def light_row(self, x_off, y, mask1, mask2=0):
+		liblo.send(self.monome_port, '/bridge/grid/led/row', 
+				x_off, y, mask1, mask2)
+
+	def light_col(self, x, y_off, mask):
+		liblo.send(self.monome_port, '/bridge/grid/led/col', x, y_off, mask)
+
+	def light_map(self, x_off, y_off, mp):
+		liblo.send(self.monome_port, '/bridge/grid/led/map', x_off, y_off, *mp)
+
+	def light_set(self, x, y, z):
+		liblo.send(self.monome_port, '/bridge/grid/led/set', x, y, z)
 
 	def dec_intensity(self):
 		self.led_intensity = self.led_intensity - 1;
 		if self.led_intensity < 0:
 			self.led_intensity = 0
-		liblo.send(self.monomePort, '/bridge/grid/led/intensity',
+		liblo.send(self.monome_port, '/bridge/grid/led/intensity',
 				self.led_intensity)
 
 	def inc_intensity(self):
 		self.led_intensity = self.led_intensity + 1 ;
 		if self.led_intensity > 15:
 			self.led_intensity = 15
-		liblo.send(self.monomePort, '/bridge/grid/led/intensity',
+		liblo.send(self.monome_port, '/bridge/grid/led/intensity',
 				self.led_intensity)
 
 
-	def switch_to_client(self, prefix, port):
-		self.prefix = prefix
-		self.clientPort = port
-		liblo.send(self.monomePort, '/bridge/grid/led/all', 0)
-		#self.send('/show', [])
-		liblo.send(self.clientPort, '/'+self.prefix+'/show' )
-		#print '/'+self.prefix+'/show'
+	#
+	# Bridge Interaction
+	#
+
+	def bridge_press(self, x,y,z):
+		if x <= 5:
+			self.trans_button(x,y,z)
+
+		# the shift key
+		#elif x in [11, 12]:
+		elif z == 1:
+			if x in [8,9] and y%2 == 0:
+				if self.l_clients != '':
+					prefix, port = self.l_clients[y/2]
+					self.prefix = prefix
+					self.client_port = port
+					self.light_clear()
+					self.client_send('/show')
+
+			if x in [14,15] and y%2 == 0:
+				if self.r_clients != '':
+					prefix, port = self.r_clients[y/2]
+					self.prefix = prefix
+					self.client_port = port
+					self.light_clear()
+					self.client_send('/show')
+
+
+	def switch_to_bridge(self):
+		self.prefix = 'bridge'
+		self.client_port = 8000
+		# Transport Side
+		if self.trans == False:
+		# We'll just let tick take care of the case where the transport is on
+			self.light_map(0,0,[0,0,0,0,51,51,self.trans_factor,self.trans_factor])
+
+		# Other side
+		self.light_map(8,0, self.client_map)
+
+
+	def trans_stop(self):
+		self.trans = False
+		if self.is_at_bridge():
+			self.light_map(0,0,[0,0,0,0,51,51,self.trans_factor,self.trans_factor])
+		
+
+	def trans_up(self):
+		if self.trans != True:
+			self.trans = True
+
+		if self.is_at_bridge():
+				mask = [63,56,42,56,51,51,self.trans_factor,self.trans_factor]
+				self.light_map(0,0, mask)
+
+
+	def trans_down(self):
+		if self.trans != True:
+			self.trans = True
+
+		if self.is_at_bridge():
+				mask = [63,7,19,7,51,51,self.trans_factor,self.trans_factor]
+				self.light_map(0,0, mask)
+
+
+	#
+	# Monome Object State Changing
+	#		(not the device or serialosc itself)
+	#
 
 	def is_at_bridge(self):
 		if self.prefix == 'bridge':
@@ -53,18 +163,37 @@ class Monome(): #(liblo.Address):
 		else:
 			return False
 
-	def client_send(self, path, args):
-		liblo.send(self.clientPort, '/'+self.prefix+path, *args)
-
 	def monome_send(self, path, args):
-		liblo.send(self.monomePort, '/bridge'+path, *args)
+		liblo.send(self.monome_port, '/bridge'+path, *args)
 
+	def update_factor_mask(self, i):
+		if i in [-2,-1]:
+			factor = 2**(i + 2)
+		elif i == 0:
+			factor = 12
+		elif i in [1,2]:
+			factor = 2**(i + 3)
+
+		if factor != self.trans_factor:
+ 			self.trans_factor = factor
+			if self.prefix == 'bridge' and self.trans == False:
+				self.light_map(0, 0, [0,0,0,0,51,51, factor, factor])
+
+
+	#
+	# Client Interaction
+	#
+
+	def client_send(self, path, args):
+		liblo.send(self.client_port, '/'+self.prefix+path, *args)
+
+	def client_send(self, path):
+		liblo.send(self.client_port, '/'+self.prefix+path, None)
+		
 	def forward_press(self, x, y, z):
-		liblo.send(self.clientPort, '/'+self.prefix+'/grid/key', x, y, z)
-		#print self.prefix
-		#print self.clientPort
+		liblo.send(self.client_port, '/'+self.prefix+'/grid/key', x, y, z)
 
-	def transport_button(self, x, y, z):
+	def trans_button(self, x, y, z):
 		if z == 1:
 			if y == 0: # Toggle on off
 				self.trans_press_count = self.trans_press_count + 1
@@ -94,38 +223,13 @@ class Monome(): #(liblo.Address):
 	
 			# Time Factor
 			elif y in [6,7]:	
-				old = self.trans_time_factor
-				if old != x:
-					self.trans_time_factor = x
-					if self.trans_time_factor in [2,3]:
-						liblo.send(self.primaryMonome, '/bridge/grid/led/row', 0, 6, 12)
-						liblo.send(self.primaryMonome, '/bridge/grid/led/row', 0, 7, 12)
-						liblo.send(57120, '/sc/transport/factor', float(1))
-					else:
-						liblo.send(self.primaryMonome, '/bridge/grid/led/row', 0, 6, 2**x)
-						liblo.send(self.primaryMonome, '/bridge/grid/led/row', 0, 7, 2**x)
-	
-						if x == 0: liblo.send(57120, '/sc/transport/factor', float(4))
-						elif x == 1: liblo.send(57120,'/sc/transport/factor',float(2))
-						elif x == 4: liblo.send(57120,'/sc/transport/factor',float(0.5))
-						elif x == 5: liblo.send(57120,'/sc/transport/factor',float(0.25))
+				if x > 2:
+					liblo.send(57120, '/sc/transport/factor_power', x - 3)
+				else:
+					liblo.send(57120, '/sc/transport/factor_power', x - 2)
 
 		elif z == 0:
 			if x <= 5 and y <= 3:
 				self.trans_press_count = self.trans_press_count - 1;
 				if self.trans_press_count < 0:
 					self.trans_press_count = 0
-
-
-
-
-
-
-
-	# Responders to serialosc notifications
-	#@liblo.make_method('/sys/connect', None)
-	#def connectrespond(self, path, args, types, src ):
-	#	note = pynotify.Notification("Serialosc", "A monome has been connected",
-	#	"dialog-information")
-	#	note.set_category("bridge")
-	#	note.show()

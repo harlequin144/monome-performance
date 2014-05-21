@@ -7,7 +7,7 @@ Transport {
 	var tapTimes; // = List[];
 	var tickperiod;
 	var factor = 1;
-	var new_factor = 1;
+	var new_factor = 0;
 	var <tick = 0;
 	var <on = false;
 
@@ -50,11 +50,13 @@ Transport {
 			{|msg| this.setBpm( this.getBpm()-msg[1] ) },
 			path+/+'tempo_sub_bpm');
 
-		OSCdef(\trans_factor,{|msg| this.setFactor(msg[1]); },path+/+'factor');
+		//OSCdef(\trans_factor,{|msg| this.setFactor(msg[1]); },path+/+'factor');
+		OSCdef(\trans_factor_power, {|msg| msg.postln; this.setFactorPower(msg[1]) },
+			path+/+'factor_power');
 	}
 
 	// Conveinence Methods
-	getBpm { ^( (1/(tickperiod*factor))*(60/48) ) }
+	getBpm { ^( (1/(tickperiod*(2**(-1*factor))))*(60/48) ) }
 
 	setBpm { |bpm|
 		if((bpm >= 10) && (bpm <= 600)){
@@ -63,13 +65,16 @@ Transport {
 		}
 	}
 
-	setFactor { |fact|
-		if( (fact > 0.0) && (fact <= 4.0) )
-		{ new_factor = fact }
+	setFactorPower { |fact|
+		if( (fact==(-2)) || (fact==(-1)) || (fact==0) || (fact==1) || (fact==2))
+		{
+			new_factor = fact;
+			bridge.sendMsg("/bridge/factor_power", new_factor );
+		}
 	}
 
 	schedTickClock {
-		SystemClock.sched((tickperiod * factor),
+		SystemClock.sched((tickperiod * (2**(-1*factor))),
 			{|ticktime|
 				bridge.sendMsg("/tick", tick);
 				otherPorts.do({|port| port.sendMsg("/tick", tick) });
@@ -78,8 +83,10 @@ Transport {
 				tick = (tick+1)%48; //tick.ticktln;
 				// Delay factor update until down beat
 				if(tick == 0){
-					factor = new_factor;
-					bridge.sendMsg("/bridge/tempo", this.getBpm());
+					if(factor != new_factor){
+						factor = new_factor;
+						bridge.sendMsg("/bridge/tempo", this.getBpm());
+					}
 				};
 
 				// resetting the tap times list
@@ -90,7 +97,8 @@ Transport {
 				//if(midiOut.respondsTo('midiClock')){
 				midiOut.midiClock;// };
 
-				tickperiod * factor;
+				(tickperiod * (2**(-1*factor))).postln;
+				tickperiod * (2**(-1*factor));
 		})
 	}
 
