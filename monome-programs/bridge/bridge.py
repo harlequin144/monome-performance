@@ -16,7 +16,7 @@ if __name__ == "__main__":
 
 
 	#Start and run the bridge
-	bridge = Bridge(8000, primaryMonome=13090, secondaryMonome=22222,
+	bridge = Bridge(8000, primaryMonome=13090, secondaryMonome=15711,
 			leftClients=[
 				('cutter', 57120),
 				('sc/jenniferhale', 57120),

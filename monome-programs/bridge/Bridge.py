@@ -48,10 +48,6 @@ class Bridge(liblo.Server):
 		# Transport
 		self.tempo = 120
 		
-		# Clients
-		#self.leftClients = leftClients
-		#self.rightClients = rightClients
-
 		# Register server methods
 		for (rPfx, _),(lPfx, _)  in zip(rightClients, leftClients):
 			self.add_method('/' + rPfx + '/hide', '', self.client_hide_responder)
@@ -82,7 +78,7 @@ class Bridge(liblo.Server):
 		#liblo.send(self.primary.monome_port, '/sys/info', self.get_port())
 	
 		self.primary.switch_to_bridge()
-		#self.secondary.switch_to_bridge()
+		self.secondary.switch_to_bridge()
 		liblo.send(12002, '/serialosc/notify', 'localhost', 8000)
 		liblo.send(12002, '/serialosc/list', 'localhost', 8000)
 
@@ -105,7 +101,8 @@ class Bridge(liblo.Server):
 		if key == curses.KEY_BACKSPACE:
 			self.primary.switch_to_bridge()
 			# Child hide
-			for prefix, port in self.leftClients:
+
+			for prefix, port in self.primarqleftClients:
 				if prefix != '':
 					liblo.send(port, '/'+prefix+'/hide')
 
@@ -115,16 +112,19 @@ class Bridge(liblo.Server):
 			self.primary.light_clear()
 			self.secondary.light_clear()
 			# send quit messages to all leftClients
-			#for prefix, port in self.leftClients:
-				#liblo.send(port, '/'+prefix+'/quit')
+			for (lPre, lPort), (rPre, rPort) in self.leftClients:
+				liblo.send(lPort, '/'+lPre+'/quit')
+				liblo.send(rPort, '/'+rPre+'/quit')
 			self.free()
 
 		# Monome Button Brightness Adjustment
 		elif key == ord('<'):
 			self.primary.dec_intensity()
+			self.secondary.dec_intensity()
 
 		elif key == ord('>'):
 			self.primary.inc_intensity()
+			self.secondary.inc_intensity()
 
 		elif key == ord('t'):
 			# draw a new window
@@ -199,6 +199,78 @@ class Bridge(liblo.Server):
 				
 		if monome != None:
 			monome.key_press(x,y,z)
+		#if monome != None:
+			#if monome.is_at_bridge():
+				#self.bridge_press(x,y,z)
+			#else:
+				#monome.forward_press(x,y,z)
+
+
+
+
+	def bridge_press(self, x,y,z):
+		if x <= 5:
+			self.trans_button(x,y,z)
+
+		# the shift key
+		#elif x in [11, 12]:
+		elif z == 1:
+			if x in [8,9] and y%2 == 0:
+				if self.l_clients != '':
+					prefix, port = self.l_clients[y/2]
+					self.prefix = prefix
+					self.client_port = port
+					self.light_clear()
+					self.client_send('/show')
+
+			if x in [14,15] and y%2 == 0:
+				if self.r_clients != '':
+					prefix, port = self.r_clients[y/2]
+					self.prefix = prefix
+					self.client_port = port
+					self.light_clear()
+					self.client_send('/show')
+
+
+
+	def trans_button(self, x, y, z):
+		if z == 1:
+			if y  < 4: # Toggle on off
+				self.trans_press_count = self.trans_press_count + 1
+				if self.trans_press_count == 1:
+					if y == 0:
+						liblo.send(57120, '/sc/transport/toggle')
+
+					else: #tap and clear
+						if x <= 2:	
+							liblo.send(57120, '/sc/transport/clear_tap')
+						else:
+							liblo.send(57120, '/sc/transport/tap')
+	
+			# Nudge Tempo Down
+			elif y in [4,5]:	
+				if x == 0:
+					liblo.send(57120, '/sc/transport/tempo_sub_bpm', float(3))
+				elif x == 1:
+					liblo.send(57120, '/sc/transport/tempo_sub_bpm', float(2))
+				elif x == 4:
+					liblo.send(57120, '/sc/transport/tempo_add_bpm', float(2))
+				elif x == 5:
+					liblo.send(57120, '/sc/transport/tempo_add_bpm', float(3))
+	
+	
+			# Time Factor
+			elif y in [6,7]:	
+				if x > 2:
+					liblo.send(57120, '/sc/transport/factor_power', x - 3)
+				else:
+					liblo.send(57120, '/sc/transport/factor_power', x - 2)
+
+		elif z == 0:
+			if x <= 5 and y <= 3:
+				self.trans_press_count = self.trans_press_count - 1;
+				if self.trans_press_count < 0:
+					self.trans_press_count = 0
 
 
 	def led_all(self, path, args, types, src):
@@ -273,7 +345,7 @@ class Bridge(liblo.Server):
 
 
 	#
-	# Transport   responders
+	# Transport Responders
 	#
 
 	@liblo.make_method('/bridge/tempo', 'f')
@@ -285,22 +357,27 @@ class Bridge(liblo.Server):
 	def tick_responder(self, path, args, types, src ):
 		tick = args[0]
 
-		if self.primary.is_at_bridge():
-			if tick%48 == 0:
+		if tick%48 == 0:
+			if self.primary.is_at_bridge():
 				self.primary.trans_up()
+			if self.secondary.is_at_bridge():
+				self.secondary.trans_up()
 
-			elif tick%48 == 24:
+		elif tick%48 == 24:
+			if self.primary.is_at_bridge():
 				self.primary.trans_down()
+			if self.secondary.is_at_bridge():
+				self.secondary.trans_down()
 
 	@liblo.make_method('/bridge/factor_power', 'i')
 	def factor_responder(self, path, args, types, src ):
 		self.primary.update_factor_mask(args[0])
-		#self.primary.update_factor_mask(args[0])
+		self.secondary.update_factor_mask(args[0])
 
 	@liblo.make_method('/bridge/stop', None)
 	def stop_responder(self, path, args, types, src ):
 		self.primary.trans_stop()
-		#self.primary.trans_stop()
+		self.secondary.trans_stop()
 
 
 	#

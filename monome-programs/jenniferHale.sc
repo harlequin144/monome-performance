@@ -51,55 +51,55 @@ synths = buffers.collect{|buf|
 
 
 invertLight = {|x,y|
-	monome.sendMsg("/sc/jenniferhale/grid/led/set",x, y, 1);
-	monome.sendMsg("/sc/jenniferhale/grid/led/set",x+1, y, 1);
-	monome.sendMsg("/sc/jenniferhale/grid/led/set",x+2, y, 1);
-	monome.sendMsg("/sc/jenniferhale/grid/led/set",x+3, y, 1);
+	bridge.sendMsg("/sc/jenniferhale/grid/led/set",x, y, 1);
+	bridge.sendMsg("/sc/jenniferhale/grid/led/set",x+1, y, 1);
+	bridge.sendMsg("/sc/jenniferhale/grid/led/set",x+2, y, 1);
+	bridge.sendMsg("/sc/jenniferhale/grid/led/set",x+3, y, 1);
 
-	monome.sendMsg("/sc/jenniferhale/grid/led/set",x, y+1, 1);
-	monome.sendMsg("/sc/jenniferhale/grid/led/set",x+1, y+1, 0);
-	monome.sendMsg("/sc/jenniferhale/grid/led/set",x+2, y+1, 0);
-	monome.sendMsg("/sc/jenniferhale/grid/led/set",x+3, y+1, 1);
+	bridge.sendMsg("/sc/jenniferhale/grid/led/set",x, y+1, 1);
+	bridge.sendMsg("/sc/jenniferhale/grid/led/set",x+1, y+1, 0);
+	bridge.sendMsg("/sc/jenniferhale/grid/led/set",x+2, y+1, 0);
+	bridge.sendMsg("/sc/jenniferhale/grid/led/set",x+3, y+1, 1);
 
-	monome.sendMsg("/sc/jenniferhale/grid/led/set",x, y+2, 1);
-	monome.sendMsg("/sc/jenniferhale/grid/led/set",x+1, y+2, 0);
-	monome.sendMsg("/sc/jenniferhale/grid/led/set",x+2, y+2, 0);
-	monome.sendMsg("/sc/jenniferhale/grid/led/set",x+3, y+2, 1);
+	bridge.sendMsg("/sc/jenniferhale/grid/led/set",x, y+2, 1);
+	bridge.sendMsg("/sc/jenniferhale/grid/led/set",x+1, y+2, 0);
+	bridge.sendMsg("/sc/jenniferhale/grid/led/set",x+2, y+2, 0);
+	bridge.sendMsg("/sc/jenniferhale/grid/led/set",x+3, y+2, 1);
 
-	monome.sendMsg("/sc/jenniferhale/grid/led/set",x, y+3, 1);
-	monome.sendMsg("/sc/jenniferhale/grid/led/set",x+1, y+3, 1);
-	monome.sendMsg("/sc/jenniferhale/grid/led/set",x+2, y+3, 1);
-	monome.sendMsg("/sc/jenniferhale/grid/led/set",x+3, y+3, 1);
+	bridge.sendMsg("/sc/jenniferhale/grid/led/set",x, y+3, 1);
+	bridge.sendMsg("/sc/jenniferhale/grid/led/set",x+1, y+3, 1);
+	bridge.sendMsg("/sc/jenniferhale/grid/led/set",x+2, y+3, 1);
+	bridge.sendMsg("/sc/jenniferhale/grid/led/set",x+3, y+3, 1);
 };
 
 resetLight = {|index|
 	var str = "/sc/jenniferhale/grid/led/set";
 	index = index - 1;
-	monome.sendMsg(str, (index%4)*4, index.div(4)*4, 0);
-	monome.sendMsg(str, (index%4)*4+1, index.div(4)*4, 0);
-	monome.sendMsg(str, (index%4)*4+2, index.div(4)*4, 0);
-	monome.sendMsg(str, (index%4)*4+3, index.div(4)*4, 0);
+	bridge.sendMsg(str, (index%4)*4, index.div(4)*4, 0);
+	bridge.sendMsg(str, (index%4)*4+1, index.div(4)*4, 0);
+	bridge.sendMsg(str, (index%4)*4+2, index.div(4)*4, 0);
+	bridge.sendMsg(str, (index%4)*4+3, index.div(4)*4, 0);
 
-	monome.sendMsg(str, (index%4)*4, index.div(4)*4+1,0);
-	monome.sendMsg(str, (index%4)*4+1, index.div(4)*4+1,1);
-	monome.sendMsg(str, (index%4)*4+2, index.div(4)*4+1,1);
-	monome.sendMsg(str, (index%4)*4+3, index.div(4)*4+1,0);
+	bridge.sendMsg(str, (index%4)*4, index.div(4)*4+1,0);
+	bridge.sendMsg(str, (index%4)*4+1, index.div(4)*4+1,1);
+	bridge.sendMsg(str, (index%4)*4+2, index.div(4)*4+1,1);
+	bridge.sendMsg(str, (index%4)*4+3, index.div(4)*4+1,0);
 
-	monome.sendMsg(str, (index%4)*4,index.div(4)*4+2,0);
+	bridge.sendMsg(str, (index%4)*4,index.div(4)*4+2,0);
 	monome.sendMsg(str, (index%4)*4+1, index.div(4)*4+2,1);
-	monome.sendMsg(str, (index%4)*4+2, index.div(4)*4+2,1);
-	monome.sendMsg(str, (index%4)*4+3, index.div(4)*4+2,0);
+	bridge.sendMsg(str, (index%4)*4+2, index.div(4)*4+2,1);
+	bridge.sendMsg(str, (index%4)*4+3, index.div(4)*4+2,0);
 
-	monome.sendMsg(str, (index%4)*4, index.div(4)*4+3, 0);
-	monome.sendMsg(str, (index%4)*4+1, index.div(4)*4+3,0);
-	monome.sendMsg(str, (index%4)*4+2, index.div(4)*4+3,0);
-	monome.sendMsg(str, (index%4)*4+3, index.div(4)*4+3,0);
+	bridge.sendMsg(str, (index%4)*4, index.div(4)*4+3, 0);
+	bridge.sendMsg(str, (index%4)*4+1, index.div(4)*4+3,0);
+	bridge.sendMsg(str, (index%4)*4+2, index.div(4)*4+3,0);
+	bridge.sendMsg(str, (index%4)*4+3, index.div(4)*4+3,0);
 };
 
 // Init
 s.notify;
-monome.sendMsg("/sc/jenniferhale/grid/led/map",0,0,0,102,102,0,0,102,102,0);
-monome.sendMsg("/sc/jenniferhale/grid/led/map",8,0,128,38,102,0,0,102,102,0);
+bridge.sendMsg("/sc/jenniferhale/grid/led/map",0,0,0,102,102,0,0,102,102,0);
+bridge.sendMsg("/sc/jenniferhale/grid/led/map",8,0,128,38,102,0,0,102,102,0);
 
 
 // Osc
@@ -134,14 +134,14 @@ OSCdef(\jenniferhale_press,
 				}
 			}
 			// Exit
-			{ x == 15 && y == 0 }{ bridge.sendMsg("/bridge/show") }
+			{ x == 15 && y == 0 }{ bridge.sendMsg("/sc/jenniferhale/hide") }
 		}
 	}, '/sc/jenniferhale/grid/key');
 
 OSCdef(\jenniferhale_show, {
-	monome.sendMsg("/sc/jenniferhale/grid/led/map",0,0,
+	bridge.sendMsg("/sc/jenniferhale/grid/led/map",0,0,
 		0,102,102,0,0,102,102,0);
-	monome.sendMsg("/sc/jenniferhale/grid/led/map", 8, 0,
+	bridge.sendMsg("/sc/jenniferhale/grid/led/map", 8, 0,
 		128,38,102,0,0,102,102,0);
 }, '/sc/jenniferhale/show');
 

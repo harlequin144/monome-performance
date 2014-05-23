@@ -1,4 +1,3 @@
-
 (
 MIDIClient.init;
 MIDIIn.connectAll;
@@ -8,3 +7,6 @@ MIDIIn.connectAll;
 ~mNome = Micronome(MIDIClient.destinations.at(2).uid);
 
 )
+
+
+// is the transport still busy with sending the midi tempo messages?
