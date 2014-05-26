@@ -41,9 +41,9 @@ class Bridge(liblo.Server):
 		# Console interface variables
 		self.print_list = deque()
 
-		# This needs to be abolished
 		self.primary = Monome(primaryMonome, leftClients, rightClients)
 		self.secondary = Monome(secondaryMonome, leftClients, rightClients)
+		self.all_clients = leftClients + rightClients
 
 		# Transport
 		self.tempo = 120
@@ -52,21 +52,23 @@ class Bridge(liblo.Server):
 		for (rPfx, _),(lPfx, _)  in zip(rightClients, leftClients):
 			self.add_method('/' + rPfx + '/hide', '', self.client_hide_responder)
 			self.add_method('/' + rPfx + '/grid/led/row', 'iiii', self.led_row)
-			self.add_method('/' + rPfx + '/grid/led/row', 'iii', self.led_row)
-			#self.add_method('/' + rPfx + '/grid/led/col', 'iiii', self.led_col)
+			#self.add_method('/' + rPfx + '/grid/led/row', 'iii', self.led_row)
+			self.add_method('/' + rPfx + '/grid/led/col', 'iiii', self.led_col)
 			#self.add_method('/' + rPfx + '/grid/led/col', 'iii', self.led_col)
-			self.add_method('/' + rPfx + '/grid/led/map', None, self.led_map)
+			self.add_method('/' + rPfx + '/grid/led/map', 'iiiiiiiiii', self.led_map)
 			self.add_method('/' + rPfx + '/grid/led/set', 'iii', self.led_set)
-			self.add_method('/' + rPfx + '/grid/led/all', '', self.led_all)
+			self.add_method('/' + rPfx + '/grid/led/all', 'i', self.led_all)
 
 			self.add_method('/' + lPfx + '/hide', '', self.client_hide_responder)
 			self.add_method('/' + lPfx + '/grid/led/row', 'iiii', self.led_row)
-			self.add_method('/' + lPfx + '/grid/led/row', 'iii', self.led_row)
-			#self.add_method('/' + lPfx + '/grid/led/col', 'iiii', self.led_col)
+			#self.add_method('/' + lPfx + '/grid/led/row', 'iii', self.led_row)
+			self.add_method('/' + lPfx + '/grid/led/col', 'iiii', self.led_col)
 			#self.add_method('/' + lPfx + '/grid/led/col', 'iii', self.led_col)
-			self.add_method('/' + lPfx + '/grid/led/map', None, self.led_map)
+			self.add_method('/' + lPfx + '/grid/led/map', 'iiiiiiiiii', self.led_map)
 			self.add_method('/' + lPfx + '/grid/led/set', 'iii', self.led_set)
-			self.add_method('/' + lPfx + '/grid/led/all', '', self.led_all)
+			self.add_method('/' + lPfx + '/grid/led/all', 'i', self.led_all)
+
+		# The generic responder
 		self.add_method(None, None, self.oscrespond)
 
 		#self.report("Key commands:")
@@ -74,8 +76,12 @@ class Bridge(liblo.Server):
 		#self.report("<>: intensity")
 		
 		# Light up monome and display some info
-		self.primary.monome_send('/sys/prefix', 'bridge')
-		#liblo.send(self.primary.monome_port, '/sys/info', self.get_port())
+		#self.primary.monome_send('/sys/prefix', 'bridge')
+		#self.secondary.monome_send('/sys/prefix', 'bridge')
+		liblo.send(self.primary.monome_port, '/sys/prefix', 'bridge')
+		liblo.send(self.secondary.monome_port, '/sys/prefix', 'bridge')
+		liblo.send(self.primary.monome_port, '/sys/port', 8000)
+		liblo.send(self.secondary.monome_port, '/sys/port', 8000)
 	
 		self.primary.switch_to_bridge()
 		self.secondary.switch_to_bridge()
@@ -87,6 +93,13 @@ class Bridge(liblo.Server):
 		while self.on:
 			self.recv(30)
 			self.keyboard_press_respond()
+			#if self.primary.shift_selected != None:
+				# double switch
+			#if self.primary.shift_selected != None:
+				# send the trigger
+				# I think that this could work because after any single press, the
+				# loop will make the check for a selected press, so there will never
+				# be any issue with mulitple fast presss
 
 		# Do This before exiting to restore terminal to normal settings
 		os.system('reset')
@@ -102,7 +115,7 @@ class Bridge(liblo.Server):
 			self.primary.switch_to_bridge()
 			# Child hide
 
-			for prefix, port in self.primarqleftClients:
+			for prefix, port in self.all_clients:
 				if prefix != '':
 					liblo.send(port, '/'+prefix+'/hide')
 
@@ -111,10 +124,10 @@ class Bridge(liblo.Server):
 			liblo.send(57120, '/sc/transport/stop')
 			self.primary.light_clear()
 			self.secondary.light_clear()
-			# send quit messages to all leftClients
-			for (lPre, lPort), (rPre, rPort) in self.leftClients:
-				liblo.send(lPort, '/'+lPre+'/quit')
-				liblo.send(rPort, '/'+rPre+'/quit')
+			# send quit messages to all clients
+			for pre, port in self.all_clients:
+				if pre != '':
+					liblo.send(port, '/'+pre+'/quit')
 			self.free()
 
 		# Monome Button Brightness Adjustment
@@ -169,7 +182,7 @@ class Bridge(liblo.Server):
 	def update_tempo_line(self):
 		height, width = self.stdscr.getmaxyx()
 		left = "Tempo: " + str(self.tempo) + " bpm"
-		right = self.primary.prefix
+		right = self.primary.client[0]
 		center = ' '*(width - (len(left) + len(right)))
 		self.stdscr.addstr(0,0, left + center + right, 
 				curses.color_pair(4) | curses.A_BOLD)
@@ -192,45 +205,40 @@ class Bridge(liblo.Server):
 		x, y, z = (args[0], args[1], args[2])
 
 		monome = None
+		other_monome = None
 		if src.get_port() == self.primary.monome_port:
 			monome = self.primary
+			other_monome = self.secondary
 		elif src.get_port() == self.secondary.monome_port:
 			monome = self.secondary
+			other_monome = self.primary
 				
 		if monome != None:
-			monome.key_press(x,y,z)
-		#if monome != None:
-			#if monome.is_at_bridge():
-				#self.bridge_press(x,y,z)
-			#else:
-				#monome.forward_press(x,y,z)
+			if monome.is_at_bridge():
+				if x <= 5:
+					monome.trans_button(x,y,z)
 
+				# the shift key
+				#elif x in [11, 12]:
+				elif z == 1:
+					if x in [8,9] and y%2 == 0:
+						if monome.l_clients != '':
+							monome.client = monome.l_clients[y/2]
+							monome.light_clear()
+							if monome.client == other_monome.client:
+								other_monome.light_clear()
+							monome.client_send('/show')
 
+					if x in [14,15] and y%2 == 0:
+						if monome.r_clients != '':
+							monome.client = monome.r_clients[y/2]
+							monome.light_clear()
+							if monome.client == other_monome.client:
+								other_monome.light_clear()
+							monome.client_send('/show')
 
-
-	def bridge_press(self, x,y,z):
-		if x <= 5:
-			self.trans_button(x,y,z)
-
-		# the shift key
-		#elif x in [11, 12]:
-		elif z == 1:
-			if x in [8,9] and y%2 == 0:
-				if self.l_clients != '':
-					prefix, port = self.l_clients[y/2]
-					self.prefix = prefix
-					self.client_port = port
-					self.light_clear()
-					self.client_send('/show')
-
-			if x in [14,15] and y%2 == 0:
-				if self.r_clients != '':
-					prefix, port = self.r_clients[y/2]
-					self.prefix = prefix
-					self.client_port = port
-					self.light_clear()
-					self.client_send('/show')
-
+			else:
+				monome.forward_press(x,y,z)
 
 
 	def trans_button(self, x, y, z):
@@ -274,63 +282,83 @@ class Bridge(liblo.Server):
 
 
 	def led_all(self, path, args, types, src):
-		if path.startswith('/'+self.primary.prefix+'/'):
+		if path.startswith('/'+self.primary.client[0]+'/'):
 			self.primary.monome_send('/grid/led/all', args)
-		elif path.startswith('/'+self.secondary.prefix+'/'):
+		if path.startswith('/'+self.secondary.client[0]+'/'):
 			self.secondary.monome_send('/grid/led/all', args)
 
 
 	def led_set(self, path, args, types, src):
-		y = args[1]
-		if y < 8:
-			if path.startswith('/'+self.primary.prefix+'/'):
-				self.primary.light_set(*args) 
-			elif path.startswith('/'+self.secondary.prefix+'/'):
-				self.secondary.light_set(*args) 
+		x, y, z = args[0], args[1], args[2]
 
-		else:
-			if path.startswith('/'+self.secondary.prefix+'/'):
-				self.secondary.light_set(args[0], args[1] - 8, args[2])
+		if not path.startswith('/bridge/'):
+			if self.primary.client == self.secondary.client:
+				if path.startswith('/'+self.primary.client[0]+'/'):
+					if y < 8:
+						self.primary.light_set(*args) 
+					else:
+						self.secondary.light_set(x, y-8, z) 
+
+			else:
+				if path.startswith('/'+self.primary.client[0]+'/'):
+					self.primary.light_set(x, y, z)
+				elif path.startswith('/'+self.secondary.client[0]+'/'):
+					self.secondary.light_set(x, y, z)
 
 
 	def led_map(self, path, args, types, src):
-		y = args[1]
-		if y == 0:
-			if path.startswith('/'+self.primary.prefix+'/'):
-				self.primary.light_map(args[0], 0, args[2:])
-			elif path.startswith('/'+self.secondary.prefix+'/'):
-				self.secondary.light_map(args[0], 0, args[2:])
+		x_off, y_off = args[0], args[1]
 
-		elif y == 8:
-			if path.startswith('/'+self.secondary.prefix+'/'):
-				self.secondary.light_map(args[0], 0, args[2:])
+		if not path.startswith('/bridge/'):
+			if self.primary.client == self.secondary.client:
+				if path.startswith('/'+self.primary.client[0]+'/'):
+					if y_off == 0:
+						self.primary.light_map(x_off, y_off, args[2:])
+					elif y_off == 8:
+						self.secondary.light_map(x_off, 0, args[2:])
+
+			else:
+				if path.startswith('/'+self.primary.client[0]+'/'):
+					self.primary.light_map(x_off, y_off, args[2:])
+				elif path.startswith('/'+self.secondary.client[0]+'/'):
+					self.secondary.light_map(x_off, y_off, args[2:])
 
 
 	def led_row(self, path, args, types, src):
-		y = args[1]
-		if y < 8:
-			if path.startswith('/'+self.primary.prefix+'/'):
-				self.primary.light_row(*args)
-			elif path.startswith('/'+self.secondary.prefix+'/'):
-				self.secondary.light_row(*args)
+		x_off, y, mask1, mask2 = args[0], args[1], args[2], args[3]
 
-		else:
-			if path.startswith('/'+self.secondary.prefix+'/'):
-				self.secondary.light_row(args[0], args[1]-8, *args[2:])
+		if not path.startswith('/bridge/'):
+			if self.primary.client == self.secondary.client:
+				if path.startswith('/'+self.primary.client[0]+'/'):
+					if y < 8:
+						self.primary.light_row(*args) 
+					else:
+						self.secondary.light_row(x_off, y-8, mask1, mask2) 
+
+			else:
+				if path.startswith('/'+self.primary.client[0]+'/'):
+					self.primary.light_row(*args)
+				elif path.startswith('/'+self.secondary.client[0]+'/'):
+					self.secondary.light_row(*args)
 
 
-	#def led_col(self, path, args, types, src):
-	#	y = args[1]
-	#	if y == 0:
-	#		if path.startswith('/'+self.primary.prefix+'/'):
-	#			self.primary.monome_send( '/bridge/grid/led/row', args)
-	#		elif path.startswith('/'+self.secondary.prefix+'/'):
-	#			self.secondary.monome_send('/bridge/grid/led/row', args)
+	def led_col(self, path, args, types, src):
+		x, y_off, mask1, mask2 = args[0], args[1], args[2], args[3]
 
-	#	elif y == 8:
-	#		if path.startswith('/'+self.secondary.prefix+'/'):
-	#			self.secondary.monome_send('/bridge/grid/led/row', 
-	#					[args[0], 0, args[2], args[3]])
+		if not path.startswith('/bridge/'):
+			if self.primary.client == self.secondary.client:
+				if path.startswith('/'+self.primary.client[0]+'/'):
+					if y == 0:
+						self.primary.light_col(x, y_off, mask1) 
+						self.secondary.light_col(x, y_off, mask2) 
+					elif y == 8:
+						self.secondary.light_col(x, y_off, mask1) 
+
+			else:
+				if path.startswith('/'+self.primary.client[0]+'/'):
+					self.primary.light_row(*args)
+				elif path.startswith('/'+self.secondary.client[0]+'/'):
+					self.secondary.light_row(*args)
 
 
 	#
@@ -338,9 +366,9 @@ class Bridge(liblo.Server):
 	#
 
 	def client_hide_responder(self, path, args, types, src):
-		if path.startswith('/'+self.primary.prefix+'/'):
+		if path.startswith('/'+self.primary.client[0]+'/'):
 			self.primary.switch_to_bridge()
-		if path.startswith('/'+self.secondary.prefix+'/'):
+		if path.startswith('/'+self.secondary.client[0]+'/'):
 			self.secondary.switch_to_bridge()
 
 

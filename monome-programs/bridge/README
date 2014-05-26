@@ -81,7 +81,10 @@ Protocol:
 	a secondary monome are connected. This shall be kept track of by keeping a
 	show count. When a program receives a show message, a counter is
 	incremented. When the count is at two, more than one monome is dedicated to
-	this program. When a program is exited, the count can decremented. 
+	this program. When a program is exited, the count can decremented. This will
+	mean that a program needs to execute the show function each time it recieves
+	the show message because the monome that will be showing the top 8 rows may
+	be changing. 
 
 	When a program is chosen on the monome, the bridge will send a
 	'/prefix/show' message to the program. Similary, when the user chooses to

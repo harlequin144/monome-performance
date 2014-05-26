@@ -111,7 +111,7 @@ int main(int argc, char **argv) {
 
 	cell_t *c;
 
-	if( !(monome = monome_open("osc.udp://127.0.0.1:13090/monome", "8000")) )
+	if( !(monome = monome_open("osc.udp://127.0.0.1:13090/bridge", "8000")) )
 		return EXIT_FAILURE;
 
 	signal(SIGINT, exit_on_signal);

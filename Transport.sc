@@ -51,7 +51,7 @@ Transport {
 			path+/+'tempo_sub_bpm');
 
 		//OSCdef(\trans_factor,{|msg| this.setFactor(msg[1]); },path+/+'factor');
-		OSCdef(\trans_factor_power, {|msg| msg.postln; this.setFactorPower(msg[1]) },
+		OSCdef(\trans_factor_power, {|msg| this.setFactorPower(msg[1]) },
 			path+/+'factor_power');
 	}
 
@@ -97,7 +97,7 @@ Transport {
 				//if(midiOut.respondsTo('midiClock')){
 				midiOut.midiClock;// };
 
-				(tickperiod * (2**(-1*factor))).postln;
+				//(tickperiod * (2**(-1*factor))).postln;
 				tickperiod * (2**(-1*factor));
 		})
 	}
@@ -142,7 +142,7 @@ Transport {
 			if((newPeriod < 0.125) &&  (newPeriod > 0.003))
 			{
 				tickperiod = newPeriod;
-				tickperiod.postln;
+				//tickperiod.postln;
 				bridge.sendMsg("/bridge/tempo", this.getBpm );
 			}
 			{ tapTimes = List[time] };

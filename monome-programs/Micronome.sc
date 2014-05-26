@@ -9,9 +9,10 @@ Micronome {
 	const lPath = "/sc/micronome/grid/led";
 
 	// State
-	var show = false;
+	//var show = false;
+	var show_cnt = 0;
 	var hold = false;
-	var controlPressCount = 0;
+	var ctrl_press_cnt = 0;
 
 	// Notes
 	var pitchRange = 12;
@@ -72,9 +73,24 @@ Micronome {
 			},
 			path +/+ 'grid/key');
 
-		OSCdef(\micronome_hide, { show = false; }, path+/+'hide');
 		OSCdef(\micronome_tick, {|msg| this.tickResponder(msg[1]) }, '/tick');
-		OSCdef(\micronome_show, { show = true; this.show;}, path+/+'show');
+
+		OSCdef(\micronome_hide, 
+			{ 
+				show_cnt = show_cnt - 1; 
+				"show decreased".postln;
+				show_cnt.postln;
+				if(show_cnt < 0){show_cnt = 0} 
+			}, 
+			path+/+'hide');
+
+		OSCdef(\micronome_show, 
+			{ 
+				show_cnt = show_cnt + 1; 
+				"show increased".postln;
+				show_cnt.postln;
+				this.show;}, 
+			path+/+'show');
 
 		this.show();
 	}
@@ -84,14 +100,16 @@ Micronome {
 	 */
 
 	pressResponder {|xPos, yPos, time|
-		show = true;
+		if( xPos < 8)
+		{ show_cnt = 1 }
+		{ show_cnt = 2 };
 		//case
 		//Mod or key press
 		if( (xPos >= 4) && (yPos > 0) ){
 			this.notePress(xPos, yPos)
 		}{
-			controlPressCount = controlPressCount + 1;
-			if( controlPressCount == 1){
+			ctrl_press_cnt = ctrl_press_cnt + 1;
+			if( ctrl_press_cnt == 1){
 				case
 				{ (yPos == 0) && (xPos >= 4) }
 				{ this.setMod(xPos-3) }
@@ -122,6 +140,10 @@ Micronome {
 				// Hold
 				{ yPos == 7 }{ this.holdToggle() }
 			}
+		};
+		if(yPos >= 8){
+			"got a press that is bigger than normal".postln;
+			yPos.postln;
 		}
 	}
 
@@ -133,8 +155,8 @@ Micronome {
 		if( (xPos >= 4) && (yPos >= 1) ){
 			this.noteRelease(xPos, yPos);
 		}{
-			controlPressCount = controlPressCount - 1;
-			if(controlPressCount < 0){ controlPressCount = 0 }
+			ctrl_press_cnt = ctrl_press_cnt - 1;
+			if(ctrl_press_cnt < 0){ ctrl_press_cnt = 0 }
 		}
 	}
 
@@ -321,7 +343,7 @@ Micronome {
 			bridge.sendMsg(lPath +/+ "set", 2,0,0);
 			bridge.sendMsg(lPath +/+ "set", 3,0,0);
 			bridge.sendMsg(lPath +/+ "row",0,1, 80,171);
-			bridge.sendMsg(lPath +/+ "row",0,2, 0);
+			bridge.sendMsg(lPath +/+ "row",0,2, 0, 0);
 			if(seqState == 2){ this.killNotesOn() };
 		}{
 			~trans.start;
@@ -380,15 +402,15 @@ Micronome {
 			if((tick/speed)%4 == 3){ this.killNotesOn() };
 		};
 
-		if(show){
+		if(show_cnt > 0){
 			case
 			{tick%48 == 0}{
-				bridge.sendMsg(lPath +/+ "row",0,1, 83,171);
-				bridge.sendMsg(lPath +/+ "row",0,2, 3,0);
-			}
-			{tick%48 == 24}{
 				bridge.sendMsg(lPath +/+ "row",0,1, 92,171);
 				bridge.sendMsg(lPath +/+ "row",0,2, 12,0);
+			}
+			{tick%48 == 24}{
+				bridge.sendMsg(lPath +/+ "row",0,1, 83,171);
+				bridge.sendMsg(lPath +/+ "row",0,2, 3,0);
 			}
 		}
 	}
@@ -400,27 +422,33 @@ Micronome {
 		var seqFact = if(seqState == 2){3}{seqState};
 		var pitchG4 = (pitchRange >=5 );
 		var selState = (selectedSeq <2);
-		// Left side
-		bridge.sendMsg(lPath +/+ "map", 0,0,
-			( pitchG4.if{241}{ 1+(16*((2**pitchRange)-1)) } ) +
-			( if(~trans.on){12}{0} ),
-			80, 0, // Tap and clear - let tick handle update this
-			80 + (4*seqFact), // Play and Record
-			80 + (4*seqFact),
-			80 + (2** selectedSeq), // Select Seq
-			2**seqPlaySpeed,//Playback speed
-			83 + (9*hold.if{1}{0}) // Hold
-		);
-		// Right Side
-		bridge.sendMsg(lPath +/+ "map",8,0,
-			(pitchG4).if{ 2**(pitchRange-4)-1 }{0},
-			171,0,171,171,171,0,171);
+		if( show_cnt > 0){
+			// Left side
+			bridge.sendMsg(lPath +/+ "map", 0,0,
+				( pitchG4.if{241}{ 1+(16*((2**pitchRange)-1)) } ) +
+				( if(~trans.on){12}{0} ),
+				80, 0, // Tap and clear - let tick handle update this
+				80 + (4*seqFact), // Play and Record
+				80 + (4*seqFact),
+				80 + (2** selectedSeq), // Select Seq
+				2**seqPlaySpeed,//Playback speed
+				83 + (9*hold.if{1}{0}) // Hold
+			);
+			// Right Side
+			bridge.sendMsg(lPath +/+ "map",8,0,
+				(pitchG4).if{ 2**(pitchRange-4)-1 }{0},
+				171,0,171,171,171,0,171);
+		};
+		//if(show_cnt > 1){
+			//bridge.sendMsg(lPath +/+ "map",8,8,
+				//0, 171,0,171,171,171,0,171);
+		//}
 	}
 
 	hide{
-		show = false;
+		show_cnt = 0;
 		bridge.sendMsg(path+/+"hide"); //sending a request to bridge to hide
-		controlPressCount = 0;
+		ctrl_press_cnt = 0;
 		if(hold == false){
 			this.killNotesOn();
 			{noteStack.size > 0}.while({noteStack.pop()});

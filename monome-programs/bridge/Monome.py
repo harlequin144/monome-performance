@@ -16,8 +16,7 @@ class Monome(): #(liblo.Address):
 
 		# Monome interface State variables
 		self.monome_port = monome_port
-		self.client_port = 8000
-		self.prefix = 'bridge'
+		self.selected_client = ('bridge', 8000)
 		self.led_intensity = 0;
 		self.l_clients = lClients
 		self.r_clients = rClients
@@ -47,7 +46,7 @@ class Monome(): #(liblo.Address):
 	#
 
 	def key_press(self, x, y, z):
-		if self.prefix == 'bridge':
+		if self.client == ('bridge', 8000):
 			self.bridge_press(x,y,z)
 		else:
 			self.forward_press(x,y,z)
@@ -92,33 +91,9 @@ class Monome(): #(liblo.Address):
 	# Bridge Interaction
 	#
 
-	def bridge_press(self, x,y,z):
-		if x <= 5:
-			self.trans_button(x,y,z)
-
-		# the shift key
-		#elif x in [11, 12]:
-		elif z == 1:
-			if x in [8,9] and y%2 == 0:
-				if self.l_clients != '':
-					prefix, port = self.l_clients[y/2]
-					self.prefix = prefix
-					self.client_port = port
-					self.light_clear()
-					self.client_send('/show')
-
-			if x in [14,15] and y%2 == 0:
-				if self.r_clients != '':
-					prefix, port = self.r_clients[y/2]
-					self.prefix = prefix
-					self.client_port = port
-					self.light_clear()
-					self.client_send('/show')
-
 
 	def switch_to_bridge(self):
-		self.prefix = 'bridge'
-		self.client_port = 8000
+		self.client = 'bridge', 8000
 		# Transport Side
 		if self.trans == False:
 		# We'll just let tick take care of the case where the transport is on
@@ -148,7 +123,7 @@ class Monome(): #(liblo.Address):
 			self.trans = True
 
 		if self.is_at_bridge():
-				mask = [63,7,19,7,51,51,self.trans_factor,self.trans_factor]
+				mask = [63,7,21,7,51,51,self.trans_factor,self.trans_factor]
 				self.light_map(0,0, mask)
 
 
@@ -158,7 +133,7 @@ class Monome(): #(liblo.Address):
 	#
 
 	def is_at_bridge(self):
-		if self.prefix == 'bridge':
+		if self.client == ('bridge', 8000):
 			return True
 		else:
 			return False
@@ -176,7 +151,7 @@ class Monome(): #(liblo.Address):
 
 		if factor != self.trans_factor:
  			self.trans_factor = factor
-			if self.prefix == 'bridge' and self.trans == False:
+			if self.is_at_bridge() and self.trans == False:
 				self.light_map(0, 0, [0,0,0,0,51,51, factor, factor])
 
 
@@ -185,13 +160,13 @@ class Monome(): #(liblo.Address):
 	#
 
 	def client_send(self, path, args):
-		liblo.send(self.client_port, '/'+self.prefix+path, *args)
+		liblo.send(self.client[1], '/'+self.client[0]+path, *args)
 
 	def client_send(self, path):
-		liblo.send(self.client_port, '/'+self.prefix+path, None)
+		liblo.send(self.client[1], '/'+self.client[0]+path, None)
 		
 	def forward_press(self, x, y, z):
-		liblo.send(self.client_port, '/'+self.prefix+'/grid/key', x, y, z)
+		liblo.send(self.client[1], '/'+self.client[0]+'/grid/key', x, y, z)
 
 	def trans_button(self, x, y, z):
 		if z == 1:
