@@ -1,0 +1,36 @@
+
+Dserver Documentation
+
+The dserver does a couple of things. It is will keep track of the drum
+sample buffers. It will load a default set of samples when it is
+constructed and will be used to manage changing those samples. Also, it
+will set up osc responders that will allow for triggering those sample with
+osc messages from other programs. For now, fast triggering will not make
+sample playback overlap. 
+
+Other programs will interact with dserver as follows: programs can send an osc
+message to supercollider with the following path
+	/sc/dserver/trigger num
+num will represent the sample to be triggered. For convention, samples will be
+numbered as follows:
+
+1 	1st snare
+2		2nd snare
+3		1st kick
+4		2nd kick
+5		closed hh
+6		open hh
+7		other symbol (shaker)
+8		ride
+
+9		aux
+10		
+11
+12	
+
+
+The server is intended for drum samples only because it is ideal for them.
+It can be used to trigger general samples however.
+
+
+
