@@ -20,8 +20,7 @@ Trigger {
 	var show_map;
 		// This structure is meant to make lighting up the monome easier by
 		// avoiding redundant computations
-
-	var speed_selector;
+var speed_selector;
 		// This structure keeps track of the edge button speeds. the first
 		// element in the array is the top left speed and the others follow
 		// in a clockwise pattern
