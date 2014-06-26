@@ -18,10 +18,13 @@ if __name__ == "__main__":
 	#Start and run the bridge
 	bridge = Bridge(8000, primaryMonome=12762, secondaryMonome=15711,
 			leftClients=[
-				('cutter', 57120),
-				('sc/trigger', 51720),
-				('dseq', 8001),
-				('sc/jenniferhale', 57120)],
+				('dtrig', 8001),
+				#	('sc/dtrig', 8001),
+				#('dseq', 8001),
+				#('sc/jenniferhale', 57120)],
+				('', 0),
+				('', 0),
+				('', 0)],
 			rightClients=[
 				('sc/micronome', 57120),
 				('', 0),

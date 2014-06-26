@@ -113,6 +113,7 @@ class Bridge(liblo.Server):
 		key = self.stdscr.getch()
 		if key == curses.KEY_BACKSPACE:
 			self.primary.switch_to_bridge()
+			self.secondary.switch_to_bridge()
 			# Child hide
 
 			for prefix, port in self.all_clients:

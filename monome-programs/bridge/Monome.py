@@ -163,7 +163,7 @@ class Monome(): #(liblo.Address):
 		liblo.send(self.client[1], '/'+self.client[0]+path, *args)
 
 	def client_send(self, path):
-		liblo.send(self.client[1], '/'+self.client[0]+path, None)
+		liblo.send(self.client[1], '/'+self.client[0]+path)
 		
 	def forward_press(self, x, y, z):
 		liblo.send(self.client[1], '/'+self.client[0]+'/grid/key', x, y, z)

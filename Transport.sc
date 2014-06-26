@@ -120,7 +120,7 @@ Transport {
 		//if(midiOut.respondsTo('stop')){ midiOut.stop };
 		//midiOut.stop;
 		bridge.sendMsg("/bridge/stop");
-		otherPorts.do({|port| port.sendMsg("/dseq/stop") });
+		otherPorts.do({|port| port.sendMsg("/dtrig/stop") });
 	}
 
 	toggle { if(on){ this.stop }{ this.start } }
@@ -142,7 +142,7 @@ Transport {
 			if((newPeriod < 0.125) &&  (newPeriod > 0.003))
 			{
 				tickperiod = newPeriod;
-				//tickperiod.postln;
+				tickperiod.postln;
 				bridge.sendMsg("/bridge/tempo", this.getBpm );
 			}
 			{ tapTimes = List[time] };

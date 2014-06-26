@@ -14,19 +14,18 @@ message to supercollider with the following path
 num will represent the sample to be triggered. For convention, samples will be
 numbered as follows:
 
-1 	1st snare
-2		2nd snare
-3		1st kick
-4		2nd kick
-5		closed hh
-6		open hh
-7		other symbol (shaker)
-8		ride
-
-9		aux
-10		
+0 	1st snare
+1		2nd snare
+2		1st kick
+3		2nd kick
+4		closed hh
+5		open hh
+6		other symbol (shaker)
+7		ride
+8		aux
+9		
+10
 11
-12	
 
 
 The server is intended for drum samples only because it is ideal for them.
