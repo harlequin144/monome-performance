@@ -32,8 +32,7 @@ int	 generic_handler(const char *path, const char *types, lo_arg ** argv,
 // F U N C T I O N   D E F I N I T I O N S
 
 void 
-error(int num, const char *msg, const char *path)
-{
+error(int num, const char *msg, const char *path){
     printf("liblo server error %d in path %s: %s\n", num, path, msg);
     fflush(stdout);
 }
@@ -98,6 +97,7 @@ hide_handler(const char *path, const char *types, lo_arg ** argv,
 {
 		struct Dtrig* dtrig = ((struct Dtrig*) user_data);
 		dtrig->show = 0;
+		dtrig->hold_mask = 0;
 		int i;
 		for(i = 0; i < 16; i++)
 			dtrig->trig_press_cnt[i] = 0;
@@ -110,7 +110,6 @@ int
 tick_handler(const char *path, const char *types, lo_arg ** argv,
                  int argc, void *data, void *user_data)
 {
-	// For convenience
 	struct Dtrig* dtrig = ((struct Dtrig*) user_data);
 	char new_tick = (argv[0]->i)%TICKS_PER_BEAT;
 
@@ -119,18 +118,15 @@ tick_handler(const char *path, const char *types, lo_arg ** argv,
 
 	// mod 3is like 32 note quant
 	// mod 6is like 16 note quant
-	if(new_tick%12 == 0){
-		if(dtrig->trig_mask != 0){
+	// Holders
+	if(dtrig->hold_mask != 0){
 		int i;
 		for(i = 0; i < 12; i++){
-			if((dtrig->trig_mask & ONE_SHIFT(i)) != 0)
-				lo_send(dtrig->sc_send, "/sc/dserver/trigger", "i", i);
-		}
-
-		dtrig->trig_mask = 0;
+			if(((dtrig->hold_mask & ONE_SHIFT(i)) != 0) &&
+					(new_tick%24 == dtrig->hold_point[i]) )
+					lo_send(dtrig->sc_send,"/sc/dserver/trigger","s",dtrig->drum_str[i]);
 		}
 	}
-	
 
 	if(new_tick == 0)
 		// down beat
@@ -140,6 +136,8 @@ tick_handler(const char *path, const char *types, lo_arg ** argv,
 	else if(new_tick == 24)
 		lo_send(dtrig->bridge_send, "/dtrig/grid/led/map", "iiiiiiiiii", 0, 0,
 			63,7,21,7, 0,0,0,1);
+
+	dtrig->last_tick = new_tick;
 
 	return 0;
 } // tick_handler
@@ -152,10 +150,12 @@ tick_handler(const char *path, const char *types, lo_arg ** argv,
 
 void control_press(struct Dtrig* dtrig, short x, short y){
 	if(y == 0){
-		if(dtrig->trans == 0)
-			lo_send(dtrig->sc_send, "/sc/transport/start", NULL);
-		else
+		if(dtrig->trans != 0)
 			lo_send(dtrig->sc_send, "/sc/transport/stop", NULL);
+		else{
+			dtrig->trans == 0;
+			lo_send(dtrig->bridge_send, "/dtrig/grid/led/set", "iii", x, y, 1);
+		}
 	}
 	else if(y > 0 && y < 4){
 		dtrig->trans_press_cnt = dtrig->trans_press_cnt +1;
@@ -189,43 +189,58 @@ void control_release(struct Dtrig* dtrig, short x, short y){
 
 }
 
-void trigger_press(struct Dtrig* dtrig, char x, char y){
-	char trigger = ((x-8)/2)*4 + (y/2);
+
+void 
+trigger_press(struct Dtrig* dtrig, char x, char y)
+{
+	char trigger = ((x-10)/2)*4 + (y/2);
 
 	dtrig->trig_press_cnt[trigger] = dtrig->trig_press_cnt[trigger] +1;
 
-	if( dtrig->trig_press_cnt[trigger] == 1){
-		if(dtrig->trans == 0)
-			lo_send(dtrig->sc_send, "/sc/dserver/trigger", "i", 
-					dtrig->trig_dn_drum_num[trigger]);
+	if(dtrig->trans == 0)
+			lo_send(dtrig->sc_send, "/sc/transport/start", NULL);
 
-		else{
-			printf("trig mask before: %u\n", dtrig->trig_mask );
-			dtrig->trig_mask |= ONE_SHIFT(dtrig->trig_dn_drum_num[trigger]);
-			printf("trig mask after: %u\n", dtrig->trig_mask );
+	if( dtrig->trig_press_cnt[trigger] == 1){
+		switch(dtrig->button_trig_type[trigger])
+		{
+			case trig:
+			case dub_tap:
+				lo_send(dtrig->sc_send, "/sc/dserver/trigger", "s", 
+						dtrig->drum_str[trigger]);
+				break;
+
+			case hold:
+				dtrig->hold_mask |= ONE_SHIFT(trigger);
+				dtrig->hold_point[trigger] = (dtrig->last_tick+1)%24;
+				break;
 		}
 	}
 }
 
-void trigger_release(struct Dtrig* dtrig, char x, char y){
-	char trigger = ((x-8)/2)*4 + (y/2);
+
+void 
+trigger_release(struct Dtrig* dtrig, char x, char y)
+{
+	char trigger = ((x-10)/2)*4 + (y/2);
 
 	dtrig->trig_press_cnt[trigger] = dtrig->trig_press_cnt[trigger] -1;
 	if( dtrig->trig_press_cnt[trigger] < 0)
 		dtrig->trig_press_cnt[trigger] = 0;
 
 	if( dtrig->trig_press_cnt[trigger] == 0){
-		//if enum type
-		if(dtrig->trig_up_drum_num[trigger] >= 0){
-			if(dtrig->trans == 0)
-				lo_send(dtrig->sc_send, "/sc/dserver/trigger", "i", 
-					dtrig->trig_up_drum_num[trigger]);
-			else
-				dtrig->trig_mask |= ONE_SHIFT(dtrig->trig_up_drum_num[trigger]);
+		switch(dtrig->button_trig_type[trigger])
+		{
+			case dub_tap:
+				lo_send(dtrig->sc_send, "/sc/dserver/trigger", "s", 
+						dtrig->drum_str[trigger]);
+				break;
+
+			case hold:
+				dtrig->hold_mask &= (~(ONE_SHIFT(trigger)));
 		}
 	}
-
 }
+
 
 int 
 press_handler(const char *path, const char *types, lo_arg ** argv,
@@ -242,14 +257,14 @@ press_handler(const char *path, const char *types, lo_arg ** argv,
 	if(v == 1){
 		if(x < 8)
 			control_press(dtrig, x, y);
-		else
+		else if(x >= 10)
 			trigger_press(dtrig, x, y);
 	}
 	// Release
 	else{
 		if(x < 8)
 			control_release(dtrig, x, y);
-		else
+		else if(x >= 10)
 			trigger_release(dtrig, x, y);
 	}
 

@@ -9,7 +9,7 @@ MIDIClient.init;
 // also, there are still bugs noted in the file, search bug
 Micronome(MIDIClient.destinations.at(1).uid);
 
-Dserver();
+~dserv = Dserver();
 
 // set up the trigger buffers (these serve both trigger and dseq)
 
@@ -17,3 +17,14 @@ Dserver();
 
 
 // is the transport still busy with sending the midi tempo messages?1
+~dserv.trigger(\sn1);
+
+
+// The dserver accomodates multipule ways to trigger something. The clients decide how the will be triggered. Any Sample can be triggered in one of the possible ways
+
+// - shot
+// - loop
+// - walk - progress and loop only as pressed
+//
+//
+//

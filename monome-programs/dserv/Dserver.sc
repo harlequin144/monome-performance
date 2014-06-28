@@ -1,15 +1,26 @@
 
 /*
- * The dserver does a couple of things. It is will keep track of the drum
- * sample buffers. It will load a default set of samples when it is
- * constructed and will be used to manage changing those samples. Also, it
- * will set up osc responders that will allow for triggering those sample with
- * osc messages from other programs. For now, fast triggering will not make
- * sample playback overlap. 
- *
- * The server is intended for drum samples only because it is ideal for them.
+ * The dserver does basically two things. It is will serve as a place to keep
+ * track of and manage the samples that are loaded into buffers to be used by
+ * the server and it will respond to osc messages that can tell it to play
+ * those sample back in various ways. It will load a default set of samples
+ * when it is constructed.
+
+ * The server is intended for drum samples just because it is ideal for them.
  * It can be used to trigger general samples however. For example, the dserver
- * can also be used to server for the sound board program eventually.
+ * can also be used to server for the sound board program eventually (we'll
+ * see).
+ * 
+ * Ways that a sample can be told to play:
+ * - one shot
+ *
+ * - loop - just a static loop. Plays the whole sample start to end over and
+ * 			over again. user tells server when to start and when to stop.
+ *
+ * - walk - similar to loop, but it has position memory - picks up back where
+ * 			you left off 
+ * - 
+ * - 
  *
  */
 
@@ -39,41 +50,74 @@ Dserver {
 		// Buffer Initialization
 		var serv = Server.local;
 		var defaultpath = sampdir+/+"VintageDrumSamples24bit/Roland TR-808";
-		buffer = [
-			Buffer.read(serv, defaultpath+/+"TR-808Snare01.wav"), // snare 1
-			Buffer.read(serv, defaultpath+/+"TR-808Clap01.wav"), // snare 2
-			Buffer.read(serv, defaultpath+/+"TR-808Kick03.wav"), // kick 1
-			Buffer.read(serv, defaultpath+/+"TR-808Kick15.wav"), // kick 2
-			Buffer.read(serv, defaultpath+/+"TR-808Hat_C01.wav"), // hh c
-			Buffer.read(serv, defaultpath+/+"TR-808Hat_O01.wav"), // hh o
-			Buffer.read(serv, defaultpath+/+"TR-808Shaker01.wav"), // symb oth
-			Buffer.read(serv, defaultpath+/+"TR-808Ride01.wav"), // ride
-			Buffer.read(serv, defaultpath+/+"TR-808Rim01.wav"), // aux 
-			Buffer.read(serv, defaultpath+/+"TR-808Tom01.wav"), // aux 
-			Buffer.read(serv, defaultpath+/+"TR-808Cow.wav"), // aux 
-			Buffer.read(serv, defaultpath+/+"TR-808Tom02.wav") // aux 
-		];
+
+		buffer =(
+			sn1: Buffer.read(serv, defaultpath+/+"TR-808Snare01.wav"),
+			sn2: Buffer.read(serv, defaultpath+/+"TR-808Clap01.wav"),
+			kk1: Buffer.read(serv, defaultpath+/+"TR-808Kick03.wav"),
+			kk2: Buffer.read(serv, defaultpath+/+"TR-808Kick15.wav"),
+			hho: Buffer.read(serv, defaultpath+/+"TR-808Hat_O01.wav"),
+			hhc: Buffer.read(serv, defaultpath+/+"TR-808Hat_C01.wav"),
+			rid: Buffer.read(serv, defaultpath+/+"TR-808Ride01.wav"),
+			shk: Buffer.read(serv, defaultpath+/+"TR-808Shaker01.wav")
+
+			//lp1: Buffer.read(serv, defaultpath+/+"TR-808Snare01.wav"),
+			//lp2: Buffer.read(serv, defaultpath+/+"TR-808Snare01.wav")
+			//lp2: Buffer.read(serv, defaultpath+/+"TR-808Snare01.wav"),
+			//lp2: Buffer.read(serv, defaultpath+/+"TR-808Snare01.wav"),
+		);
+
 
 		// Synth Initialization
-		synth = buffer.collect({|buf| Synth(\dtrigger, [\bufnum, buf]) });
+		synth =(
+			sn1: Synth(\dtrigger, [\bufnum, buffer[\sn1] ]),
+			sn2: Synth(\dtrigger, [\bufnum, buffer[\sn2] ]),
+			kk1: Synth(\dtrigger, [\bufnum, buffer[\kk1] ]),
+			kk2: Synth(\dtrigger, [\bufnum, buffer[\kk2] ]),
+			hho: Synth(\dtrigger, [\bufnum, buffer[\hho] ]),
+			hhc: Synth(\dtrigger, [\bufnum, buffer[\hhc] ]),
+			rid: Synth(\dtrigger, [\bufnum, buffer[\rid] ]),
+			shk: Synth(\dtrigger, [\bufnum, buffer[\shk] ])
+
+			//lp1: Buffer.read(serv, defaultpath+/+"TR-808Snare01.wav"),
+			//lp2: Buffer.read(serv, defaultpath+/+"TR-808Snare01.wav")
+			//lp2: Buffer.read(serv, defaultpath+/+"TR-808Snare01.wav"),
+			//lp2: Buffer.read(serv, defaultpath+/+"TR-808Snare01.wav"),
+		);
 
 		// Osc Responder Registration
-		OSCdef(\dserver, {|msg| this.trigger(msg[1]) }, '/sc/dserver/trigger');
+		OSCdef.newMatching( \trig_respond,
+			{|msg|
+				synth.do{|sy, index|
+					if(sy.asNodeID == msg[3]){ "yup".postln();}
+					}
+				}, '/n_off');
 
+		OSCdef(\dserver_shot, {|msg| this.trigger(msg[1].asSymbol) }, 
+			'/sc/dserver/trigger');//,
+	 		//argTemplate: {|args| /*args.postln;*/ true});
+
+		//OSCdef(\dserver_loop, {|msg| this.trigger(msg[1]) }, 
+		//	'/sc/dserver/trigger',
+	 	//	argTemplate: {|args| args.postln; true});
+
+		//OSCdef(\dserver_walk, {|msg| this.trigger(msg[1]) }, 
+		//	'/sc/dserver/trigger',
+	 	//	argTemplate: {|args| args.postln; true});
 	}
 
-	trigger {|num|
-		if( (num >= 0) && (num <= 12))
-		{ synth[num].set(\t_trig, 1) }
+	trigger {|str|
+		synth[str].run;
+		synth[str].set(\t_trig, 1);
 	}
 
-	set_buffer {|num, file_path|
-		if( (num >= 0) && (num <= 12)){ 
-			// free the old one
-			buffer[num].free;
-			// allocate the new
-			// free the cooresponding synth
-			// allocate the new
-		}
-	}
+	//set_buffer {|num, file_path|
+	//	if( (num >= 0) && (num <= 12)){ 
+	//		// free the old one
+	//		buffer[num].free;
+	//		// allocate the new
+	//		// free the cooresponding synth
+	//		// allocate the new
+	//	}
+	//}
 }

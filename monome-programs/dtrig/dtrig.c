@@ -46,8 +46,8 @@ main(int argc, char **argv)
 
 	// Main loop
 	while(!dtrig.quit)
-		lo_server_recv(dtrig.osc_server);
-		//lo_server_recv_noblock(dtrig.osc_server, 100);
+		//lo_server_recv(dtrig.osc_server);
+		lo_server_recv_noblock(dtrig.osc_server, 5);
 
 
 	// Clean up.

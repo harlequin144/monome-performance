@@ -91,7 +91,7 @@ class Bridge(liblo.Server):
 
 	def run(self):
 		while self.on:
-			self.recv(30)
+			self.recv(10)
 			self.keyboard_press_respond()
 			#if self.primary.shift_selected != None:
 				# double switch

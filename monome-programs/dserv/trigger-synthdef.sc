@@ -14,7 +14,8 @@
 SynthDef(\dtrigger,
 	{ |bufnum, t_trig = 0, out = 0|
 		Out.ar(out,
-			PlayBuf.ar(1, bufnum, BufRateScale.kr(bufnum), t_trig, 0, doneAction: 0)
+			PlayBuf.ar(1, bufnum, BufRateScale.kr(bufnum), t_trig, 0,
+			doneAction: 0)
 		)
 	}
 ).load;

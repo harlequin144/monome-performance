@@ -49,8 +49,6 @@ void
 light_dtrig(struct Dtrig* dtrig)
 {
 	int control_mask[8] = {0,0,0,0,0,0,0,1};
-	if(dtrig->trans != 0)
-		control_mask[0] = 63;
 
 	lo_send(dtrig->bridge_send,"/dtrig/grid/led/map", "iiiiiiiiii", 0, 0,
 			control_mask[0], control_mask[1],
