@@ -1,7 +1,3 @@
-
-// THink about merging some of the press counters. try to prevent accidntal
-// hits... Will have to keep keys and control section separate tho..
-
 Micronome {
 
 	//classvar numMicronomes;
@@ -9,10 +5,10 @@ Micronome {
 	const lPath = "/sc/micronome/grid/led";
 
 	// State
-	//var show = false;
 	var show_cnt = 0;
 	var hold = false;
 	var ctrl_press_cnt = 0;
+	//var down_tick = 0;
 
 	// Notes
 	var pitchRange = 12;
@@ -45,14 +41,17 @@ Micronome {
 	var midiOut; // Keeps track of what notes are on microbrute-side
 
 
-	*new {|midiUid, bridgePortNum = 8000|
-		^super.new.init(midiUid, bridgePortNum)
+	*new {|bridgePortNum = 8000, uid|
+		^super.new.init(bridgePortNum, uid)
 	}
 
-	init {|midiUid, bridgePortNum = 8000|
+	init {|bridgePortNum = 8000, uid|
 		bridge = NetAddr.new("localhost", bridgePortNum);
 		//monome = NetAddr.new("localhost", monomePortNum);
-		midiOut = MIDIOut(0, midiUid);
+		midiOut = MIDIOut.new(1);
+		//midiOut = MIDIOut.newByName(deviceName, portName);
+		midiOut.connect(uid);
+		
 		midiOut.latency = 0;
 
 		// Data Structure Initialization
@@ -61,6 +60,7 @@ Micronome {
  		seq = Array[
 			LinkedList[60],LinkedList[60],LinkedList[60],LinkedList[60] ];
 		midiOut.control(0,105, 127);  // Seq Play hold to off
+		midiOut.control(0, 109,0);
 		midiOut.sysex(Int8Array[16rB0, 16r65, 16r0, 16rB0, 16r64, 16r0,
 			16rB0, 16r06, pitchRange]);
 
@@ -73,23 +73,46 @@ Micronome {
 			},
 			path +/+ 'grid/key');
 
-		OSCdef(\micronome_tick, {|msg| this.tickResponder(msg[1]) }, '/tick');
+		OSCdef(\micronome_tick, 
+			{|msg| 
+				this.tickResponder(msg[1]);
+				case
+				{ msg[1] == 0 }
+				{ this.trans_light_dn; }
+				{ msg[1] == 24 }
+				{ this.trans_light_up; }
+				
+			
+			}, '/transport/tick');
 
-		OSCdef(\micronome_hide, 
-			{ 
-				show_cnt = show_cnt - 1; 
+		//OSCdef(\micronome_tick_dn, 
+		//	{|msg| 
+		//		this.tickResponder(msg[1]);
+		//		this.trans_light_dn;
+		//		down_tick = msg[1];
+		//	}, '/transport/tick/down');
+
+		//OSCdef(\micronome_tick_up, 
+		//	{|msg| 
+		//		this.tickResponder(msg[1]);
+		//		this.trans_light_up;
+		//	}, '/transport/tick/up');
+
+		OSCdef(\micronome_hide,
+			{
+				show_cnt = show_cnt - 1;
 				"show decreased".postln;
 				show_cnt.postln;
-				if(show_cnt < 0){show_cnt = 0} 
-			}, 
+				if(show_cnt < 0){show_cnt = 0}
+			},
 			path+/+'hide');
 
-		OSCdef(\micronome_show, 
-			{ 
-				show_cnt = show_cnt + 1; 
+		OSCdef(\micronome_show,
+			{
+				show_cnt = show_cnt + 1;
 				"show increased".postln;
 				show_cnt.postln;
-				this.show;}, 
+				this.show;},
 			path+/+'show');
 
 		this.show();
@@ -379,8 +402,9 @@ Micronome {
 		bridge.sendMsg(lPath +/+ "row", 0,7,hold.if{12}{3}+80, 171);
 	}
 
-		tickResponder {|tick|
-		var speed = 12; //(3 * (2**(4-seqPlaySpeed)));
+
+	tickResponder {|tick|
+		var speed = 12;
 		case
 		{ seqPlaySpeed == 0 }{ speed = 12 }
 		{ seqPlaySpeed == 1 }{ speed = 6 }
@@ -388,7 +412,7 @@ Micronome {
 		{ seqPlaySpeed == 3 }{ speed = 8 };
 
 		if(	(seqState > 1) && (noteStack.size > 0)){ //down beat or note on
-			if((tick/speed)%4 == 0){
+			if(((tick/speed)%4) == 0){
 				var note = if(seqPos == 0)
 					{abs(noteStack.last())}
 					{abs(noteStack.last()) + seq[selectedSeq][seqPos]};
@@ -398,20 +422,22 @@ Micronome {
 			};
 		};
 
-		if((seqState > 1)){ // Up beat or note off
-			if((tick/speed)%4 == 3){ this.killNotesOn() };
-		};
+		// Kill notes off in the seq
+		if( (seqState > 1) && ((tick/speed)%4 == 3) )
+		{ this.killNotesOn() };
+	}
 
+	trans_light_up{
 		if(show_cnt > 0){
-			case
-			{tick%48 == 0}{
-				bridge.sendMsg(lPath +/+ "row",0,1, 92,171);
-				bridge.sendMsg(lPath +/+ "row",0,2, 12,0);
-			}
-			{tick%48 == 24}{
-				bridge.sendMsg(lPath +/+ "row",0,1, 83,171);
-				bridge.sendMsg(lPath +/+ "row",0,2, 3,0);
-			}
+			bridge.sendMsg(lPath +/+ "row",0,1, 83,171);
+			bridge.sendMsg(lPath +/+ "row",0,2, 3,0);
+		}
+	}
+
+	trans_light_dn{
+		if(show_cnt > 0){
+			bridge.sendMsg(lPath +/+ "row",0,1, 92,171);
+			bridge.sendMsg(lPath +/+ "row",0,2, 12,0);
 		}
 	}
 

@@ -97,13 +97,23 @@ Dserver {
 			'/sc/dserver/trigger');//,
 	 		//argTemplate: {|args| /*args.postln;*/ true});
 
+		//OSCdef(\dserver_walk, 
+		//	{|msg| 
+		//		var synth_str = msg[1];
+		//		var state = msg[2];
+		//		var port = msg[3];
+
+		//		if(state == 1)
+		//		{ this.walk(synth_str); }
+		//		{ this.kill_walk(synth_str); }
+		//	}, 
+		//	'/sc/dserver/trigger');
+	 	//	//argTemplate: {|args| args.postln; true});
+
 		//OSCdef(\dserver_loop, {|msg| this.trigger(msg[1]) }, 
 		//	'/sc/dserver/trigger',
 	 	//	argTemplate: {|args| args.postln; true});
 
-		//OSCdef(\dserver_walk, {|msg| this.trigger(msg[1]) }, 
-		//	'/sc/dserver/trigger',
-	 	//	argTemplate: {|args| args.postln; true});
 	}
 
 	trigger {|str|
@@ -111,6 +121,13 @@ Dserver {
 		synth[str].set(\t_trig, 1);
 	}
 
+//	walk {|str|
+//		synth[str] = Synth(\walk;
+//	}
+//
+//	kill_walk {|str|
+//		synth[str].free;
+//	}
 	//set_buffer {|num, file_path|
 	//	if( (num >= 0) && (num <= 12)){ 
 	//		// free the old one

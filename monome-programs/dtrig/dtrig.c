@@ -38,7 +38,12 @@ main(int argc, char **argv)
 	lo_server_add_method(dtrig.osc_server,"/dtrig/show","",show_handler,&dtrig);	
 	lo_server_add_method(dtrig.osc_server,"/dtrig/stop","",stop_handler,&dtrig);	
 	lo_server_add_method(dtrig.osc_server,"/dtrig/hide","",hide_handler,&dtrig);	
-	lo_server_add_method(dtrig.osc_server,"/tick", "i", tick_handler, &dtrig);	
+	lo_server_add_method(dtrig.osc_server,"/transport/tick", "i", 
+			tick_handler, &dtrig);	
+	lo_server_add_method(dtrig.osc_server,"/transport/tick/up", "i", 
+			tick_handler, &dtrig);	
+	lo_server_add_method(dtrig.osc_server,"/transport/tick/down", "i", 
+			tick_handler, &dtrig);	
   lo_server_add_method(dtrig.osc_server, NULL, NULL, generic_handler, &dtrig);	
 
 	

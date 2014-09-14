@@ -1,36 +1,30 @@
+#!/usr/bin/env python
+
+
 from Bridge import *
 
+import ConfigParser
 
 
+config = ConfigParser.ConfigParser()
+config.read('/home/dylan/.config/bridge/bridge.cfg')
+
+
+listen = int(config.get("Ports", 'listen') )
+pPort = int(config.get("Ports", 'primaryMonome') )
+sPort =  int(config.get("Ports", 'secondaryMonome') )
+
+
+lClients = [ (prfx,int(port)) if int(port)!=0 else ('',0) 
+		for prfx,port in config.items('LeftClients')]
+
+rClients = [ (prfx,int(port)) if int(port)!=0 else ('',0) 
+		for prfx,port in config.items('RightClients')]
 
 
 if __name__ == "__main__":
-	#parser = optparse.OptionParser()
-	#parser.add_option('-l', '--listen-port', help='port to listen on')
-
-
-	#(opts, args) = parser.parse_args()
-
-	# Here is a good place to parse a config file to be used for starting the
-	# bridge
-
-
-	#Start and run the bridge
-	bridge = Bridge(8000, primaryMonome=12762, secondaryMonome=15711,
-			leftClients=[
-				('dtrig', 8001),
-				#	('sc/dtrig', 8001),
-				#('dseq', 8001),
-				#('sc/jenniferhale', 57120)],
-				('', 0),
-				('', 0),
-				('', 0)],
-			rightClients=[
-				('sc/micronome', 57120),
-				('', 0),
-				('', 0),
-				('', 0)]
-			)
+	bridge = Bridge(listen, primaryMonome=pPort, secondaryMonome=sPort,
+			leftClients=lClients, rightClients=rClients )
 
 	bridge.run()
 

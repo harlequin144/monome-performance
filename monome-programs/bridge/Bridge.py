@@ -382,7 +382,7 @@ class Bridge(liblo.Server):
 		self.tempo = args[0]
 		self.update_tempo_line()
 
-	@liblo.make_method('/tick', 'i')
+	@liblo.make_method('/transport/tick', 'i')
 	def tick_responder(self, path, args, types, src ):
 		tick = args[0]
 
