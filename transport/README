@@ -1,0 +1,20 @@
+
+The transport works by sending out 48 tick messages for every beat. The
+messages have a number from 0 thru 47. The down beat will start at 0. To
+avoid the necessity to know where the beat is when there is no sound that is
+aligned with it, the down beat can be shifted to something other than 0. The
+down beat is shifted to the last tick only when the transport is rolling and a
+new first tap is recieved. There is no need to move it back or anything. When
+the down beat is shifted, the transport must broadcast which tick will now be
+the down beat. 
+
+This way is good because it provides flexibility. Programs that are more
+rigidly watching the beat can still rely on it as long as they are capable of
+responding to the change. Programs that are less tied to the beat can ignore
+it and just use the speed of ticks to trigger things. 
+
+Examples: The sequencer on the Micronome will still play its notes in time
+and starting with the down beat. If the user starts using the transport to say
+trigger some hi hats that are in time but started on an arbitrary beat, as
+long as the user realigns the down beat properly, the sequence will still play
+in time. 
