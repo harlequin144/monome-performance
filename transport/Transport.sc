@@ -3,11 +3,10 @@ Transport {
 	//calssvar numtransports
 	const path = "/sc/transport";
 
-	var tapTimes; // = List[];
+	var tapTimes;
 	var tickPeriod = 1;
 	var factor = 1;
 	var new_factor = 0;
-	//var down_tick = 0;
 	var <tick = 0;
 	var <on = false;
 

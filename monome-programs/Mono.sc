@@ -17,9 +17,8 @@ Mono {
 	// at any time. Also, when a note is added, a note on midi mesasge is
 	// sent. When one is removed a note off must also be sent (except when the
 	// hold is on).
-	var noteOn = 0; // Only one note on at a time
+	var holdNote = 0; // Only one note on at a time
 
-	var holdSet;
 	// Osc/Midi
 	var bridge;
 	var midiOut; // Keeps track of what notes are on microbrute-side
@@ -38,7 +37,7 @@ Mono {
 
 		// Data Structure Initialization
 		noteStack = LinkedList[];
-		holdSet = Set[];
+		//holdSet = Set[];
 
 		midiOut.control(0,105, 127);  // Seq Play hold to off
 		midiOut.control(0, 109,0);
@@ -76,7 +75,7 @@ Mono {
 		OSCdef(\mono_hold,
 			{|msg|
 				case
-				{msg[1] == 0}{ hold = true }
+				{msg[1] == 0}{ this.holdEngage; }
 				{msg[1] == 1}{ this.holdRelease; }
 			}, path+/+'hold');
 
@@ -89,7 +88,6 @@ Mono {
 	 */
 
 	pressResponder {|xPos, yPos, time|
-		xPos.postln;
 		if( xPos < 8)
 		{ show_cnt = 1 }
 		{ show_cnt = 2 };
@@ -134,45 +132,43 @@ Mono {
 		}
 	}
 
+
 	/*
 	 * Press helpers
 	 */
+
 	notePress { |xPos, yPos| //|time|
 		var note = (12*yPos) + (xPos-4);
-		// This is the main purpose of this function, operations specific to
-		// states are handled in the cases below.
+
 		if(noteStack.size() > 0)
-		//{ midiOut.noteOff(0, noteStack.last()) };
 		{ this.noteOff(noteStack.last()) };
 
 		noteStack.add(note);
-		//this.killNotesOn();
-		//midiOut.noteOn(0, note);
 		this.noteOn(note);
 
-		if(hold)
-		{ holdSet.add(note) }
-
+		if(hold){
+			this.noteOff(holdNote);
+			holdNote = note;
+		}
 	}
 
 	noteRelease {|xPos, yPos|
 		var note = (12*yPos) + (xPos-4);
 
 		if(note == noteStack.last()){
-			noteStack.remove(note);
-			if(hold)
-			{ holdSet.add(note) }
-			{ this.noteOff(note) };
-
-			if(noteStack.size > 0)
-			{ 
-				//midiOut.noteOn(0, noteStack.last());
+			if(noteStack.size > 1){// guearanteed to not be 0 here 
+				this.noteOff(note);
+				noteStack.remove(note);
 				this.noteOn(noteStack.last());
-				//holdSet.add(noteStack.last()) 
+			}{
+				noteStack.remove(note);
+				if(hold)
+				{ holdNote = note }
+				{ this.noteOff(note) }
 			}
-
+		}{ 
+			noteStack.remove(note) 
 		}
-		{ noteStack.remove(note) }
 	}
 
 	/*
@@ -216,17 +212,20 @@ Mono {
 		}
 	}
 
+	holdEngage {
+		hold = true;
+		midiOut.noteOff(0, holdNote);
+		bridge.sendMsg(lPath +/+ "row",0,5, 80,171);
+		bridge.sendMsg(lPath +/+ "row",0,6, 2, 0);
+		bridge.sendMsg(lPath +/+ "row",0,7, 80,171);
+	}
+
 	holdRelease {
-		"hold off".postln;
 		hold = false;
-		holdSet.do({|note| 
-			if(noteStack.size > 0){
-				if(note != noteStack.last())
-				{ midiOut.noteOff(0, note) } 
-			}
-			{ midiOut.noteOff(0, note) };
-		});
-		holdSet = Set[];
+		midiOut.noteOff(0, holdNote);
+		bridge.sendMsg(lPath +/+ "row",0,5, 87,171);
+		bridge.sendMsg(lPath +/+ "row",0,6, 5, 0);
+		bridge.sendMsg(lPath +/+ "row",0,7, 87,171);
 	}
 
 	trans_light_up{
@@ -249,8 +248,8 @@ Mono {
 	show { // Light up the monome
 		if( show_cnt > 0){
 
-			var hold_mask_mid = if(hold){9}{6};
-			var hold_mask_out = if(hold){15}{0};
+			var hold_mask_mid = if(hold){2}{5};
+			var hold_mask_out = if(hold){0}{7};
 
 			var trans_mask = if(~trans.on){12}{0};
 			var mod_range_mask = 
@@ -261,9 +260,10 @@ Mono {
 			// Left side
 			bridge.sendMsg(lPath +/+ "map", 0,0,
 				mod_range_mask + trans_mask,
-				80, 0, 80, 
-				80 + hold_mask_out, 80 + hold_mask_mid, 
-				0 + hold_mask_mid, 80 + hold_mask_out
+				80, 0, 80, 80,
+				80 + hold_mask_out, 
+				0 + hold_mask_mid, 
+				80 + hold_mask_out
 			);
 
 			// Right Side
@@ -292,22 +292,8 @@ Mono {
 	 * Note Management
 	 */
      
-	noteOff { |note|
-		midiOut.noteOff(0,note);
-		if(hold)
-		{ holdSet.add(note) }
-	}
+	noteOff { |note| midiOut.noteOff(0,note) }
+	noteOn { |note| midiOut.noteOn(0,note) }
 
-	noteOn { |note|
-		midiOut.noteOff(0,noteOn);
-		midiOut.noteOn(0,note);
-		noteOn = note;
-		//if(hold)
-		//{ holdSet.add(note) }
-	}
-
-	killallnotes {
-		(1..150).do({|note| midiOut.noteOff(0, note) })
-	}
+	killallnotes { (1..150).do({|note| midiOut.noteOff(0, note) }); }
 }
-
