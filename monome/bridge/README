@@ -1,0 +1,102 @@
+The Bridge is a program that is meant to facilitate using the monome with more
+than one program. It implements a service for other programs that use a monome
+so that a use can switch easily between the programs. The bridge can work with
+programs that are unaware of the bridge and the framework that it implements,
+but programs can benifit by taking advantage of some features that the bridge
+gives. For example, a program can tell the bridge that it wishes to exit (hide
+itself) and let the bridge show. The bridge also provides a nice central place
+to control the transport. The bridge therefore serves only those two functions 
+
+The bridge will do the following things:
+
+	-	route osc traffic to client programs
+	-	provide a monome interface to switch to those client programs
+	-	provide a monome interface to control the transport
+	-	provide a curses interface that will:
+		-	Show info that is sent from serialosc
+		-	Show numerically what the tempo is
+		-	Facilitate setting the tempo by typing it
+		-	Give a way to return to the bridge when a program has crashed or has no
+			button for exiting.
+	?	provide a mixer interface on the monome to send master level adjustments
+		to child programs
+
+
+Things the bridge will not do:
+
+	-	Try to make sure other programs are running
+	- Facilitate dynamically switching clients. Maybe this will be changed
+		later. But for now, the bridge is light enough that it can just be killed
+		and restarted with new clients to facilitate a tool chain change.
+	-	Facilitate the actual transport. This is done with supercollider.
+	-	Start or stop serialosc. It will not crash when serialosc is not running,
+		but it will not be able to do anything with out it. Therefore, serailosc
+		should be started either before or when the bridge is being setup.
+	-	
+	
+
+
+To Do
+
+
+
+
+Scope of this program's use: 
+	This program is meant to be general enough to work with harlequin's set up.
+	To be specific:
+	- The bridge can work with any program that is meant for the monome.
+	- It only works with 128s
+	- It can only work with one or two monomes
+
+
+
+Working with multiple monomes:
+
+	When the bridge is started, it shall take arguments giving the ports for the
+	primary and the secondary monome. It shall also keep track of what prefix
+	each monome currently has selected representing which program is selected
+	and showing on that monome. Note, that this does not coorespond with the
+	prefix setting in serialosc. This should always be 'bridge' when using the
+	bridge. The bridge will tell serialosc to make this setting when it is
+	started. When the two monomes have different prefixes selected, they will be
+	serviced as if they were separate monomes.  When they have the same prefix
+	(i.e. they are working for the same program), they will together be serviced
+	together as one monome. When this is the case, for example, presses on the
+	secondary monome will send button messages for rows 8-15 and can be lit by
+	sending messages to those rows. The two monomes should then be arranged such
+	that when they are working together, they will look like a 256 (so right
+	next to each other with the long sides touching. Secondary monome closer to
+	the user than the primary).
+
+Protocol:
+	When programs are switched, the monome's leds need to be cleared out before
+	performing the switch to the new program. The bridge should be responsible
+	for doing this automatically, so that other programs don't need to take care
+	of it. Thus, when a program exits back to the bridge, the bridge will clear
+	all LEDs, then draw its lighting on the monome. When a new program is
+	chosen, the bridge should again clear all the LEDs, and then send the show
+	message to the program.
+
+	Some programs may need to be able to know when they have both a primary and
+	a secondary monome are connected. This shall be kept track of by keeping a
+	show count. When a program receives a show message, a counter is
+	incremented. When the count is at two, more than one monome is dedicated to
+	this program. When a program is exited, the count can decremented. This will
+	mean that a program needs to execute the show function each time it recieves
+	the show message because the monome that will be showing the top 8 rows may
+	be changing. 
+
+	When a program is chosen on the monome, the bridge will send a
+	'/prefix/show' message to the program. Similary, when the user chooses to
+	exit the program via the cli (backspace), a '/prefix/hide' message is sent.
+	This can be used to reduce osc traffic. When a program is hidden, it can
+	cease to send useless led messages until it again recieves the show message.
+
+	A program can tell the bridge that it wishes to forfeit its control of the
+	monome back to the bridge my sending '/prefix/hide' to the bridge.
+
+	The bridge works with the transport according to the protocol given in the
+	documentation for the transport. 
+
+
+

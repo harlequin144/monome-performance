@@ -1,0 +1,71 @@
+
+This document is meant to give a description of how my music setup shall work
+including how the monome will be run and interact with various components of
+the system. Three important pieces of technology are chosen to be critical
+parts of this system:
+	- SuperCollider - The primary sound making program/ interface
+	- OSC - Communication protocal. This is prefered at all times over midi
+		whenever possible
+	- Jack - Sound back end
+
+
+The monome is used in conjunction with a set of c programs that are switch
+between using a master program called the bridge. 
+
+
+Here are some features every monome program must have to work with this
+system:
+
+	- accept the /prefix/show osc message to tell the program to show itself on
+		the monome
+
+	- accept the /prefix/hide osc message to tell the program to hide itself on
+		the monome. This is just so that the user can escape to the bridge from
+		the keyboard if need be
+
+	- accept the /prefix/quit osc message to tell the program to quit.
+
+	- accept 3 command line options
+
+		-l = listening port - the port the program uses to listen to all OSC
+		messages on including both button presses and regular commands. The
+		program may implement a CLI for other types of input.  -s = supercollider
+		port -b = bridge port
+
+		The latter two may be given default values because they should remain
+		fairly constant. The listening port should be flexable.
+
+
+	- have a way to exit back to the bridge either from the CLI or more
+		preferably from some kind of button press from the monome. When the exit
+		command is triggered the program must:
+
+			- Stop sending OSC messages to the monome to keep traffic as low as
+				possible. i.e. it must 'hide'
+			-	Send the /bridge/show message to the bridge. 
+
+If a program is to interact with the system clock, it may implement the
+following functionalities:
+	-	Transport start: starts up the transport from tick 0. The transport will
+		boradcast a 0 tick first, representing a down beat. Programs can infer
+		from a tick 0 that the transport has started running again if it was
+		stopped before.
+
+		Send a /sc/transport/start message to sclang (57120)
+
+	-	Transport Stop: Stop the transport. The clock stops and resets to get
+		ready for starting again. When sc is given this message, it will forward
+		the message back to all transport using programs to tell them that the
+		trasnport has stopped.
+
+		Send a /sc/transport/stop message to sclang (57120)
+
+	-	Transport Tap: send a tap for tap tempo. The clock will also move the tick
+		straight to 0 when pressed.
+
+		Send a /sc/transport/tap message to sclang (57120)
+
+	-	Transport Clear Tap: Clear out tap tempo timings. This will not happen
+		otherwise.
+
+		Send a /sc/transport/clear_tap message to sclang (57120)
