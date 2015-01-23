@@ -5,45 +5,60 @@
  
 
 
+void 	timespec_print(struct timespec time);
+int 	timespec_geq(struct timespec time1, struct timespec time2);
+int 	timespec_leq(struct timespec time1, struct timespec time2);
+struct timespec timespec_norm(struct timespec time1, struct timespec time2);
+int 	check_tick_expired(struct timespec elapsed, struct timespec period);
 
-int check_tick_expired(struct transport * trans){
-	struct timespec current_time;
-	struct timespec elapsed_time;
+int 	validate_bpm(float bpm);
+int 	validate_period(struct timespec period);
 
-	int ret = 0;
-	ret = clock_gettime(CLOCK_MONOTONIC, &current_time);
-	if(ret < 0)
-		return ret;
+float period_to_bpm(struct timespec period);
+struct timespec bpm_to_period(float bpm);
 
-	elapsed_time = timespec_norm(trans->last_tick_time, current_time);
 
-	if( (elapsed_time.tv_sec >= trans->tick_period.tv_sec) && 
-			(elapsed_time.tv_nsec >= trans->tick_period.tv_nsec) )
-	{
-		trans->last_tick_time = current_time;
+
+
+void timespec_print(struct timespec time)
+{
+	printf("\t %li \n\t %li\n", time.tv_sec, time.tv_nsec);
+}
+
+int timespec_geq(struct timespec time1, struct timespec time2)
+{
+	if( (time1.tv_sec >= time2.tv_sec) && (time1.tv_nsec >= time2.tv_nsec) )
 		return 1;
-		//puts("late");
+	else
+		return 0;
+}
+
+int timespec_leq(struct timespec time1, struct timespec time2)
+{
+	if( (time1.tv_sec <= time2.tv_sec) && (time1.tv_nsec <= time2.tv_nsec) )
+		return 1;
+	else
+		return 0;
+}
+
+
+int check_tick_expired(struct timespec elapsed, struct timespec period)
+{
+	if( timespec_geq(elapsed, period) ){
+		return 1; //puts("late");
 	}
 
 	else{
 		struct timespec delta;
-		delta = timespec_norm(elapsed_time, trans->tick_period);
-		if((delta.tv_sec == 0) && (delta.tv_nsec <= TOL)){
-			trans->last_tick_time = current_time;
-			//puts("early");
-			//printf("elapsed: \n\t %li \n\t %li\n", norm2.tv_sec, norm2.tv_nsec);
-			return 1;
+		delta = timespec_norm(elapsed, period);
+		if( (delta.tv_sec == 0) && (delta.tv_nsec <= TOL) ){
+			return 1; //puts("early");
 		}
 	}
 
 	return 0;
 }
 
-
-void print_timespec(struct timespec time)
-{
-	printf("\t %li \n\t %li\n", time.tv_sec, time.tv_nsec);
-}
 
 struct timespec timespec_norm(struct timespec time1, struct timespec time2)
 {
@@ -103,17 +118,17 @@ struct timespec bpm_to_period(float bpm)
 	return ret;
 }
 
+
 int validate_bpm(float bpm)
 {
-	int ret = 1;
-	if((bpm < 20) || (bpm > 400))
-		ret = 0;
-
-	return ret;
+	return validate_period( bpm_to_period(bpm) );
 }
+
 
 int validate_period(struct timespec period)
 {
-	float bpm = period_to_bpm(period);
-	return validate_bpm(bpm);
+	if( timespec_geq(period, MIN_PERIOD) && timespec_leq(period, MAX_PERIOD) )
+		return 1;
+	else
+		return 0;
 }
