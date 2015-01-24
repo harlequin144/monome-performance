@@ -28,15 +28,18 @@ int main(void)
 	// forkGui
 	// forkMonome
 
-// Setup
+	// Setup
 	struct transport * trans;
 
+	// This doesn't seem to be working
+	struct timespec per = {.tv_sec = 0, .tv_nsec = 1000000};
+	printf("tempo for period of 1 milisecond: %f\n", period_to_bpm(per));
 
 	trans = new_transport();
 	start_transport_loop(trans);
 
-	// clean up
-	printf("In successfully\n");
+	// Clean up
+	printf("Successf\n");
 	exit(EXIT_SUCCESS);
 }
 
@@ -46,9 +49,10 @@ void start_transport_loop(struct transport * trans)
 	int return_code;
 	struct timespec elapsed_time;
 	struct timespec current_time;
+	struct timespec rem = {.tv_sec = 0, .tv_nsec = 10000};
+	const struct timespec sleeptime = {.tv_sec = 0, .tv_nsec = 100};
 
 	while( trans->run ){
-
 		if( trans->on ){
 			return_code = clock_gettime( CLOCK_MONOTONIC, &current_time );
 			assert(return_code == 0);
@@ -60,9 +64,10 @@ void start_transport_loop(struct transport * trans)
 				send_tick_msgs(trans);
 				trans->tick = ((trans->tick + 1)%TICKS_PER_BEAT);
 			}
-		}
 
-		lo_server_recv_noblock(trans->osc_server, 1);
+			lo_server_recv_noblock(trans->osc_server, 0);
+			nanosleep(&sleeptime, &rem);
+		}
 	}
 }
 
@@ -90,27 +95,27 @@ struct transport * new_transport()
 	}
 
 	lo_server_add_method(trans->osc_server, "/transport/quit",  NULL,
-			quit_handler, &trans);
+			quit_handler, trans);
 	lo_server_add_method(trans->osc_server, "/transport/start", NULL,
-			start_handler, &trans);
+			start_handler, trans);
 	lo_server_add_method(trans->osc_server, "/transport/stop", NULL, 
-			stop_handler, &trans);
+			stop_handler, trans);
 	//lo_server_add_method(trans->osc_server, "/transport/tap", NULL,
-			//tap_handler, &trans);
+			//tap_handler, trans);
 	//lo_server_add_method(trans->osc_server, "/transport/clear_tap",
-			//clear_tap_handler, NULL);
+			//clear_tap_handler, trans);
 	lo_server_add_method(trans->osc_server, "/transport/set_bpm", "f",
-			set_bpm_handler, &trans);
+			set_bpm_handler, trans);
 	lo_server_add_method(trans->osc_server, "/transport/inc_bpm", NULL,
-			inc_bpm_handler, &trans);
+			inc_bpm_handler, trans);
 	lo_server_add_method(trans->osc_server, "/transport/dec_bpm", NULL,
-			dec_bpm_handler, &trans);
+			dec_bpm_handler, trans);
 	//lo_server_add_method(trans->osc_server,"/transport/factor_bpm_handler",
-			//"f", factor_period, &trans);
+			//"f", factor_period, trans);
 	//lo_server_add_method(trans->osc_server,"/transport/reg_bpm_rcvr_handler",
-			//"is", reg_bpm_rcvr, &trans);
+			//"is", reg_bpm_rcvr, trans);
 	//lo_server_add_method(trans->osc_server,"/transport/reg_tick_rcvr_handler",
-			//"is", reg_tick_rcvr, &trans);
+			//"is", reg_tick_rcvr, trans);
 			//
 	lo_server_add_method(trans->osc_server,NULL, NULL, generic_handler, NULL);
 
@@ -133,7 +138,6 @@ struct transport * new_transport()
 	trans->tick_client_list = node;
 
 
-	puts("here");
 	return trans;
 }
 
@@ -162,11 +166,11 @@ void stop(struct transport * trans)
 	send_stop_msgs(trans);
 }
 
-int set_bpm(struct transport * trans, float bpm)
+int set_bpm(struct transport * trans, double bpm)
 {
 	struct timespec period = bpm_to_period( bpm );
 	if( validate_period(period) ){
-			trans->tick_period = period;
+		trans->tick_period = period;
 		send_bpm_msgs(trans);
 	}
 }

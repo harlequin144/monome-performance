@@ -1,33 +1,13 @@
-
 (
-
 OSCdef(\mono_press,
 	{|msg, time|
-		case
-		{msg[1] == 0}{
-			"tick!".postln;
-			//var osc, env, output;
+		if(msg[1] == 0,
+		{
+			{(SinOsc.ar(600, 0, 0.5)) * (Line.ar(1, 0, 0.125, doneAction: 2)) }.play;
+			//"tick".postln;
+		});
 
-			//osc = {SinOsc.ar(60)};
-			//env = {Line.ar(1, 0, 1, doneAction: 2)};
-
-			//output = osc * env;
-
-			//Out.ar(0,
-			//  Pan2.ar(output, 0)
-		}
+		//msg.postln;
 	},
 	'/sc/transport/tick');
-)
-
-
-(
-var osc, env, output;
-
-osc = {SinOsc.ar(400)};
-env = {Line.ar(1, 0, 1, doneAction: 2)};
-
-output = osc * env;
-
-Out.ar(0,Pan2.ar(output, 0));
 )

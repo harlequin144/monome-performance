@@ -6,18 +6,19 @@
 
 #define TICKS_PER_BEAT 144 // two factors of 3 to allow for triplets. :)
 #define NANOS_PER_SEC 1000000000
-#define TOL 100000
+//#define TOL 1000
 
 
 const struct timespec MIN_PERIOD= {.tv_sec = 0, .tv_nsec = 1040000};
 const struct timespec MAX_PERIOD= {.tv_sec = 0, .tv_nsec = 21000000};
+const struct timespec TOL = {.tv_sec = 0, .tv_nsec = 1};
 
 
 struct transport{
 	char run;
 	char on;
 
-	char tick;
+	unsigned int tick;
 	
 	struct timespec last_tick_time; 
 	struct timespec tick_period; 
@@ -49,7 +50,7 @@ void stop(struct transport * trans);
 void quit(struct transport * trans);
 //int tap(struct transport * trans)
 //int clear_tap(struct transport * trans)
-//int set_bpm(struct transport * trans)
+int set_bpm(struct transport * trans, double bpm);
 //int factor_bpm(struct transport * trans)
 //int reg_bpm_rcvr(struct transport * trans)
 //int reg_tick_rcvr(struct transport * trans)

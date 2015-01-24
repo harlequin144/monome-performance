@@ -57,41 +57,29 @@ int set_bpm_handler(const char *path, const char *types, lo_arg ** argv,
 		                    int argc, void *data, void *user_data)
 {
 	struct transport * trans = (struct transport *) user_data;
-
-	struct timespec period = bpm_to_period( argv[0]->f);
-	if(validate_period(period))
-			trans->tick_period = period;
-	send_bpm_msgs(trans);
+	set_bpm(trans, argv[0]->f) ;
 }
 
 int inc_bpm_handler(const char *path, const char *types, lo_arg ** argv,
 		                    int argc, void *data, void *user_data)
 {
 	struct transport * trans = (struct transport *) user_data;
-
-	struct timespec period = 
-		bpm_to_period(period_to_bpm(trans->tick_period) + 1);
-	if(validate_period(period))
-			trans->tick_period = period;
-	send_bpm_msgs(trans);
+	set_bpm(trans, period_to_bpm(trans->tick_period) + 1);
 }
 
 int dec_bpm_handler(const char *path, const char *types, lo_arg ** argv,
 		                    int argc, void *data, void *user_data)
 {
 	struct transport * trans = (struct transport *) user_data;
-
-	struct timespec period = 
-		bpm_to_period(period_to_bpm(trans->tick_period) - 1);
-	if(validate_period(period))
-			trans->tick_period = period;
-	send_bpm_msgs(trans);
+	set_bpm(trans, period_to_bpm(trans->tick_period) - 1);
 }
 
 //int factor_bpm_handler(const char *path, const char *types, lo_arg ** argv,
 //		                    int argc, void *data, void *user_data);
-//int decrement(const char *path, const char *types, lo_arg ** argv,
-//		                    int argc, void *data, void *user_data);
+//int reg_bpm_rcvr_handler(const char *path, const char *types, lo_arg **
+//												argv, int argc, void *data, void *user_data);
+//int reg_tick_rcvr_handler(const char *path, const char *types, lo_arg **
+//												argv, int argc, void *data, void *user_data);
 //
 
 
@@ -108,7 +96,7 @@ void error(int num, const char *msg, const char *path){
 //
 void send_tick_msgs(struct transport * trans)
 {
-	puts("tick!");
+	//puts("tick!");
 	lo_send(trans->tick_client_list->client->addr, "/sc/transport/tick", "i",
 		trans->tick);
 }

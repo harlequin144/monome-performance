@@ -11,11 +11,11 @@ int 	timespec_leq(struct timespec time1, struct timespec time2);
 struct timespec timespec_norm(struct timespec time1, struct timespec time2);
 int 	check_tick_expired(struct timespec elapsed, struct timespec period);
 
-int 	validate_bpm(float bpm);
+int 	validate_bpm(double bpm);
 int 	validate_period(struct timespec period);
 
-float period_to_bpm(struct timespec period);
-struct timespec bpm_to_period(float bpm);
+double period_to_bpm(struct timespec period);
+struct timespec bpm_to_period(double bpm);
 
 
 
@@ -51,7 +51,7 @@ int check_tick_expired(struct timespec elapsed, struct timespec period)
 	else{
 		struct timespec delta;
 		delta = timespec_norm(elapsed, period);
-		if( (delta.tv_sec == 0) && (delta.tv_nsec <= TOL) ){
+		if( timespec_leq(delta, TOL) ){
 			return 1; //puts("early");
 		}
 	}
@@ -88,38 +88,38 @@ struct timespec timespec_norm(struct timespec time1, struct timespec time2)
 	return result;
 }
 
-float period_to_bpm(struct timespec period)
+double period_to_bpm(struct timespec period)
 {
-	float sec_per_tick = period.tv_sec;
-	sec_per_tick += ((float) period.tv_nsec / NANOS_PER_SEC);
+	double sec_per_tick = (double) period.tv_sec;
+	sec_per_tick += (((double)period.tv_nsec) /((double)  NANOS_PER_SEC));
 
-	float tick_per_sec = 1 / sec_per_tick;
-	float beat_per_sec = tick_per_sec / TICKS_PER_BEAT;
-	float bpm = beat_per_sec * 60;
+	double tick_per_sec = ((double) 1.0) / sec_per_tick;
+	double beat_per_sec = tick_per_sec / TICKS_PER_BEAT;
+	double bpm = beat_per_sec * 60;
 
 	return bpm;
 }
 	
-struct timespec bpm_to_period(float bpm)
+struct timespec bpm_to_period(double bpm)
 {
-	//need some security checking here.
+	// this security should be eliminated later. Validation will occur in
+	// transport!
 	assert(bpm <= 400);
 	assert(bpm >= 0);
 
-	float bps = bpm / 60.0;
-	float ticks_per_sec = bps * TICKS_PER_BEAT;
-	float sec_per_tick = 1.0 / ticks_per_sec;
+	double sec_per_tick = ((double)1.0 / ((bpm * TICKS_PER_BEAT) / 60.0));
 	long long sec = (long long) sec_per_tick;
-	long long nsec = (sec_per_tick - ((long long) sec_per_tick)) * NANOS_PER_SEC;
+	long long nsec = ((long long)((sec_per_tick - sec) * NANOS_PER_SEC));
 
 	struct timespec ret;
 	ret.tv_sec = sec;
 	ret.tv_nsec = nsec;
+
 	return ret;
 }
 
 
-int validate_bpm(float bpm)
+int validate_bpm(double bpm)
 {
 	return validate_period( bpm_to_period(bpm) );
 }
