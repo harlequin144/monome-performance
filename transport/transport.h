@@ -32,7 +32,7 @@ struct transport{
 
 struct client{
 	lo_address addr;
-	char * path;
+	char * prefix;
 };
  
 struct client_list_node{
@@ -41,8 +41,12 @@ struct client_list_node{
 };
 
 
+
 struct transport * new_transport();
 void start_transport_loop(struct transport * tran);
+
+void add_client(struct client_list_node ** list, char ** port, char ** prefix);
+void print_client_list(struct client_list_node * list);
 
 // The basic functions of the transport
 void start(struct transport * trans);
