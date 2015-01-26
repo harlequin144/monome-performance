@@ -30,7 +30,8 @@
 enum lcfg_status
 config_iterator(const char *key, void *data, size_t len, void *user_data) 
 {
-	struct transport * trans = (struct transport *) user_data;
+	struct transport_init_params * trans = 
+		(struct transport_init_params *) user_data;
 
 	regex_t regex;
 	regex_t tick_client_data;
@@ -41,11 +42,11 @@ config_iterator(const char *key, void *data, size_t len, void *user_data)
 	char msgbuf[100];
 
 	ret = regcomp(&tick_client_key, 
-			"tick-clients\*.[0-9]+", REG_NOSUB | REG_EXTENDED);
+			"tick-clients[.][0-9]+", REG_NOSUB | REG_EXTENDED);
 	assert(ret == 0);
 
 	ret = regcomp(&tick_client_data, 
-			"[0-9]{4,6}:(/[A-Za-z0-9_]+)+", REG_NOSUB | REG_EXTENDED);
+			"[0-9]{4,6}:(/[A-Za-z0-9_]+)+/", REG_NOSUB | REG_EXTENDED);
 	assert(ret == 0);
 
 
@@ -64,18 +65,20 @@ config_iterator(const char *key, void *data, size_t len, void *user_data)
 	//}
 
 	if( regexec(&tick_client_key, key, 0, NULL, 0) == 0 ){
-				puts(key);
+		//puts(key);
+		if( regexec(&tick_client_data, (const char *) data, 0, NULL, 0) == 0)
 	}
 
 	else if( strcmp(key, "transport-port") == 0 ){
-		puts(key);
-
+		//puts(key);
+		// if matches regex
+		params->trasport_port = key;
 	}
 	else{
 
 	}
 
-	//int i;
+//	int i;
 	//char c;
 	//for( i = 0; i < len; i++ ) {
 	//	c = *((const char *)(data + i));
@@ -85,30 +88,43 @@ config_iterator(const char *key, void *data, size_t len, void *user_data)
 	return lcfg_status_ok;
 }
 
-
-int main(void)
+void read_config(struct transport_init_params * params)
 {
-	// Read Args
-	
-
-	struct transport * trans;
-	trans = new_transport();
-
-
 	struct lcfg *c = lcfg_new("/home/dylan/.config/transport/transport.cfg");
 
 	if( lcfg_parse(c) != lcfg_status_ok ) 
 		printf("Error reading config file: %s\n", lcfg_error_get(c));
 
 	else 
-		lcfg_accept(c, config_iterator, trans);
+		lcfg_accept(c, config_iterator, params);
 
 	lcfg_delete(c);
+}
 
+
+int main(void)
+{
+	struct transport_init_params params;
+	params.transport_port = "8001";
+	params.tick_client_list = NULL;
+
+
+	read_config( &params );
+	//read_args( params );
+
+
+	const char * port = "57120";
+	char * prefix = "/sc/transport/tick";
+	add_client(&(params.tick_client_list), &port, &prefix);
+	
 
 	// forkGui
 	// forkMonome
+	
 
+	struct transport * trans;
+	trans = new_transport( &params );
+	print_client_list( trans->tick_client_list );
 
 	//start_x_gui();
 	start_transport_loop(trans);
@@ -147,10 +163,10 @@ void start_transport_loop(struct transport * trans)
 }
 
 
-struct transport * new_transport()
+struct transport * new_transport( struct transport_init_params * params )
 {
 	struct transport * trans;
-	trans = (struct transport*) calloc(1, sizeof(struct transport));
+	trans = (struct transport*) malloc( sizeof(struct transport));
 	trans->run = 1;
 	trans->on = 1;
 	trans->tick = 0;
@@ -163,7 +179,7 @@ struct transport * new_transport()
 	trans->tick_period = bpm_to_period(120);
 
 
-	trans->osc_server = lo_server_new("8001", error);
+	trans->osc_server = lo_server_new(params->transport_port, error);
 	if(!(trans->osc_server)){
 		puts("Exiting. failed to make ther osc server");
 		exit(1);
@@ -197,15 +213,8 @@ struct transport * new_transport()
 
 	//lo_address bridge_send;
 	//bridge_send = lo_address_new(NULL, "8000");
-
-
 	
-	trans->tick_client_list = NULL; 
-	char * port = "57120";
-	char * prefix = "/sc/transport/tick";
-	add_client(&(trans->tick_client_list), &port, &prefix);
-	print_client_list(trans->tick_client_list);
-
+	trans->tick_client_list = params->tick_client_list;
 
 	return trans;
 }
@@ -218,15 +227,18 @@ struct transport * new_transport()
 void print_client_list(struct client_list_node * node)
 {
 	if( node != NULL ){
-		puts(node->client->prefix);
+		printf("\t");
+		printf(lo_address_get_port(node->client->addr));
+		printf(":");
+		printf(node->client->prefix);
+		printf("\n");
 		print_client_list(node->next);
 	}
-	//else
-		//puts("reached the null node");
 }
 
 
-void add_client(struct client_list_node ** node, char ** port, char ** prefix)
+void 
+add_client(struct client_list_node ** node, const char ** port, char ** prefix)
 {
 	if( *node == NULL ){
 		*node = (struct client_list_node*) malloc(sizeof(struct client_list_node));
@@ -240,8 +252,14 @@ void add_client(struct client_list_node ** node, char ** port, char ** prefix)
 		(*node)->client = c;
 	}
 	
-	else
-		add_client(&((*node)->next), port, prefix);
+	else{
+		assert((*node)->client != NULL);
+		if( ( strcmp((*node)->client->prefix, *prefix) != 0 ) &&
+				(	strcmp(lo_address_get_port( (*node)->client->addr ), *port) != 0 ) 
+		){
+			add_client(&((*node)->next), port, prefix);
+		}
+	}
 }
 
 

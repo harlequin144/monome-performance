@@ -29,6 +29,15 @@ struct transport{
 	//struct client_list_node * bpm_client_list;
 };
 
+struct transport_init_params{
+	char * transport_port;
+	//char * gui_port;
+	//char * monome_port;
+
+	struct client_list_node * tick_client_list;
+	//struct client_list_node * bpm_client_list;
+};
+
 
 struct client{
 	lo_address addr;
@@ -45,7 +54,7 @@ struct client_list_node{
 struct transport * new_transport();
 void start_transport_loop(struct transport * tran);
 
-void add_client(struct client_list_node ** list, char ** port, char ** prefix);
+void add_client(struct client_list_node ** list, const char ** port, char ** prefix);
 void print_client_list(struct client_list_node * list);
 
 // The basic functions of the transport
