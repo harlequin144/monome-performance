@@ -4,11 +4,13 @@
 #include <time.h>
 #include <unistd.h>
 #include <math.h>
-#include <regex.h>
+//#include <regex.h>
 
 
 #include "lcfg_static.h"
 #include "lcfg_static.c"
+#include "slre.h"
+#include "slre.c"
 
 #include "time.c"
 #include "transport.h"
@@ -30,65 +32,55 @@
 enum lcfg_status
 config_iterator(const char *key, void *data, size_t len, void *user_data) 
 {
-	struct transport_init_params * trans = 
-		(struct transport_init_params *) user_data;
+	struct transport_params * params = (struct transport_params *) user_data;
 
-	regex_t regex;
-	regex_t tick_client_data;
-	regex_t tick_client_key;
-	//regex_t bpm_client_key_regex;
+	if( slre_match("transport-port", key, strlen(key), NULL, 0, 0) > 0){
 
-	int ret;
-	char msgbuf[100];
-
-	ret = regcomp(&tick_client_key, 
-			"tick-clients[.][0-9]+", REG_NOSUB | REG_EXTENDED);
-	assert(ret == 0);
-
-	ret = regcomp(&tick_client_data, 
-			"[0-9]{4,6}:(/[A-Za-z0-9_]+)+/", REG_NOSUB | REG_EXTENDED);
-	assert(ret == 0);
-
-
-
-	/* Execute regular expression */
-	//reti = regexec(&regex, "abc", 0, NULL, 0);
-	//if (!reti) {
-	//	    puts("Match");
-	//}
-	//else if (reti == REG_NOMATCH) {
-	//	    puts("No match");
-	//}
-	//else {
-	//	regerror(reti, &regex, msgbuf, sizeof(msgbuf));
-	//	fprintf(stderr, "Regex match failed: %s\n", msgbuf);
-	//}
-
-	if( regexec(&tick_client_key, key, 0, NULL, 0) == 0 ){
-		//puts(key);
-		if( regexec(&tick_client_data, (const char *) data, 0, NULL, 0) == 0)
+		const char * port = (const char *) data;
+		if( slre_match("\\d\\d\\d\\d\\d?\\d?", port, strlen(key), NULL, 0, 0) > 0)
+			//puts(port);
+			params->transport_port = malloc(sizeof(char) * strlen(port));
+			strcpy(params->transport_port, port);
 	}
 
-	else if( strcmp(key, "transport-port") == 0 ){
-		//puts(key);
-		// if matches regex
-		params->trasport_port = key;
-	}
-	else{
 
+	if( slre_match("tick-clients\\.\\d", key, strlen(key), NULL, 0, 0) > 0){
+
+		const char * client = (const char *) data;
+		//struct slre_cap caps[4];
+	
+
+		//if(slre_match("(\\d\\d\\d\\d\\d?\\d?):\\(\\(/[A-Za-z0-9_]+\\)+/\\)", 
+		//if(slre_match("((\\d\\d\\d\\d\\d?\\d?)?:([\\d\\S_]))", 
+		//if( slre_match("\\(57210\\):\\(\\S+\\)", 
+					//client, strlen(client), caps, 4, 0 ) > 0){
+
+			//puts(client);
+			//puts(caps[0].ptr);
+			//puts(caps[1].ptr);
+			////puts(caps[2].ptr);
+			//puts(caps[4].ptr);
+
+			char * regex = "(57210):(/\\S+/)";
+			
+			struct slre_cap caps[2];
+			
+			if( slre_match(regex, client, strlen(client), caps, 2, 0) > 0) {
+				printf("Found URL: [%.*s]\n", caps[0].len, caps[0].ptr);
+				printf("Found URL: [%.*s]\n", caps[1].len, caps[1].ptr);
+			}
+
+		//}
+		
 	}
 
-//	int i;
-	//char c;
-	//for( i = 0; i < len; i++ ) {
-	//	c = *((const char *)(data + i));
-	//	printf("%c", isprint(c) ? c : '.');
+	//else{
 	//}
 
 	return lcfg_status_ok;
 }
 
-void read_config(struct transport_init_params * params)
+void read_config(struct transport_params * params)
 {
 	struct lcfg *c = lcfg_new("/home/dylan/.config/transport/transport.cfg");
 
@@ -104,7 +96,7 @@ void read_config(struct transport_init_params * params)
 
 int main(void)
 {
-	struct transport_init_params params;
+	struct transport_params params;
 	params.transport_port = "8001";
 	params.tick_client_list = NULL;
 
@@ -124,7 +116,7 @@ int main(void)
 
 	struct transport * trans;
 	trans = new_transport( &params );
-	print_client_list( trans->tick_client_list );
+	//print_client_list( trans->tick_client_list );
 
 	//start_x_gui();
 	start_transport_loop(trans);
@@ -163,7 +155,7 @@ void start_transport_loop(struct transport * trans)
 }
 
 
-struct transport * new_transport( struct transport_init_params * params )
+struct transport * new_transport( struct transport_params * params )
 {
 	struct transport * trans;
 	trans = (struct transport*) malloc( sizeof(struct transport));

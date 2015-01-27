@@ -29,7 +29,7 @@ struct transport{
 	//struct client_list_node * bpm_client_list;
 };
 
-struct transport_init_params{
+struct transport_params{
 	char * transport_port;
 	//char * gui_port;
 	//char * monome_port;
