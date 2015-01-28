@@ -7,9 +7,9 @@ Transport {
 	var show_cnt = 0;
 	var ctl_press_cnt = 0;
 	var tempo_press_cnt = 0;
-	var right_mask; // to remember the state of the right side leds. 
+	var right_mask; // to remember the state of the right side leds.
 
-	// Transport state 
+	// Transport state
 	var tapTimes;		// List of times when taps happened
 	var tickPeriod = 1;
 	var factor = 1;
@@ -53,7 +53,7 @@ Transport {
 		right_mask = List[0,0,0,0,0,0,0];
 
 		//rate = 0.35787944117; // e^-1
-		//rate = 0.13533528323; // e^-2	
+		//rate = 0.13533528323; // e^-2
 
 		// Basic functionality responders
 		OSCdef(\trans_stop, 	{ this.stop }, path+/+'stop');
@@ -61,40 +61,40 @@ Transport {
 		OSCdef(\trans_toggle, 	{ this.toggle }, path+/+'toggle');
 		OSCdef(\trans_clear_tap,{ this.clearTap }, path+/+'clear_tap');
 
-		OSCdef(\trans_tap, 
-			{ |msg, time| 
-				this.tap(time) 
-			}, 
+		OSCdef(\trans_tap,
+			{ |msg, time|
+				this.tap(time)
+			},
 			path+/+'tap');
 
 		// Monome Related Responders
 
-		OSCdef(\trans_button_press, 
-			{|msg, time| 
+		OSCdef(\trans_button_press,
+			{|msg, time|
 				if(msg[3] == 1)
 				{ this.pressResponder(msg[1], msg[2], time) }
 				{ this.releaseResponder(msg[1], msg[2]) }
-			}, 
+			},
 			path+/+'grid/key');
 
-		OSCdef(\trans_show, 
+		OSCdef(\trans_show,
 			{
 				show_cnt = show_cnt + 1;
 				this.show; //"showing".postln;
-			}, 
+			},
 			path+/+'show');
 
-		OSCdef(\trans_hide, 
+		OSCdef(\trans_hide,
 			{
 				show_cnt = show_cnt - 1;
 				if(show_cnt < 0){ show_cnt = 0 };
-			}, 
+			},
 			path+/+'hide');
 	}
 
 
 	/*
-	 * 	Basic Functions 
+	 * 	Basic Functions
 	 */
 
 	start {
@@ -112,12 +112,12 @@ Transport {
 		//otherPorts.do({|port| port.sendMsg("/dtrig/stop") });
 	}
 
-	toggle { 
-		if(on){ 
+	toggle {
+		if(on){
 			this.stop;
 			bridge.sendMsg(lpath+/+'map',0,0, 0,0,0,0,51,51,12,12)
 		}
-		{ this.start } 
+		{ this.start }
 	}
 
 	tap { |time|
@@ -126,7 +126,7 @@ Transport {
 		{
 			//If the taps are old, clear em out
 			if( (tapTimes.size >= 1) &&
-				(time - tapTimes.last) > (3 * 48 * tickPeriod) )
+				(time - tapTimes.last) > (3 * 144 * tickPeriod) )
 			{ tapTimes = List[time]; }
 
 			// Just adding on to a current list.
@@ -144,9 +144,9 @@ Transport {
 				});
 
 				// Average and scale
-				newPeriod = ((newPeriod / (tapTimes.size-1))/48);
+				newPeriod = ((newPeriod / (tapTimes.size-1))/144);
 				this.setPeriod(newPeriod);
-	
+
 			};
 
 			this.setRightMask;
@@ -160,9 +160,9 @@ Transport {
 
 		tick = 0;
 		//if(tick < 22,{ // we're thinking about the next tick
-		//	adj_remaining = (48 - (tick + 1));
-		//	//adj_total = (48 - (tick + 1));
-		//	adj_total = ((rate**(tick + 1)) - (rate**48));
+		//	adj_remaining = (144 - (tick + 1));
+		//	//adj_total = (144 - (tick + 1));
+		//	adj_total = ((rate**(tick + 1)) - (rate**144));
 
 		//	// calculate the scale in the tick handler, b/c we need tick time
 
@@ -186,11 +186,11 @@ Transport {
 	 * Conveinence Methods
 	 */
 
-	getBpm { ^( (1/(tickPeriod*(2**(-1*factor))))*(60/48) ) }
+	getBpm { ^( (1/(tickPeriod*(2**(-1*factor))))*(60/144) ) }
 
 	setBpm { |bpm|
 		if((bpm >= 10) && (bpm <= 600))
-		{ tickPeriod = (1 / ((bpm * 48)/60)) };
+		{ tickPeriod = (1 / ((bpm * 144)/60)) };
 
 		this.setRightMask;
 	}
@@ -198,14 +198,14 @@ Transport {
 	setPeriod {|per|
 		if((per < 0.125) &&  (per > 0.003))
 		{ tickPeriod = per };
-		//tickPeriod.postln; 
+		//tickPeriod.postln;
 
 		this.setRightMask;
 	}
 
 	setRightMask {
 		// Fine grain adjustment lighting
-		right_mask = 
+		right_mask =
 			[128+(2**(((this.getBpm%10).div(2))+1)-1), 0,0,0,0,0,0,0];
 
 		//Now light things in an interesting way
@@ -221,7 +221,7 @@ Transport {
 		);
 
 		tempo_pair_list.do({|pair|
-			right_mask[pair[1]] = 
+			right_mask[pair[1]] =
 				(right_mask[pair[1]] + (2**(pair[0] - 8)));
 		});
 		//right_mask.postln;
@@ -243,13 +243,14 @@ Transport {
 			{|ticktime|
 				var adjPeriod; // periodicity adjusted by the factor choice
 				var delta = 0;
+
 				if(show_cnt > 0){
 					case
-					{tick == 0}{ 
-						bridge.sendMsg(lpath+/+'map',0,0, 
+					{tick == 0}{
+						bridge.sendMsg(lpath+/+'map',0,0,
 							63,56,42,56,51,51,12,12);
 					}
-					{tick == 24}{ 
+					{tick == 72}{
 						bridge.sendMsg(lpath+/+'map', 0,0,
 							63,7,21,7,51,51,12,12);
 					};
@@ -260,13 +261,14 @@ Transport {
 					{|port| port.sendMsg("/transport/tick", tick) }
 				);
 
-				tick = (tick+1)%48; //tick.postln;
+
+				tick = (tick+1)%144; //tick.postln;
 				// The execution of this function marks the begining of the
 				// tick that tick has just been set to.
 				// Delay factor update until down beat
 				if((tick == 0) && (factor != new_factor))
 				{ factor = new_factor };
-				
+
 				// resetting the tap times list
 				if(tapTimes.size > 0){
 					if(ticktime > (2.5 + tapTimes[tapTimes.size-1]))
@@ -308,10 +310,10 @@ Transport {
 
 	pressResponder {|xPos, yPos, time|
 		case
-		{(xPos >= 0) && (xPos < 6)}{ 
-			case 
+		{(xPos >= 0) && (xPos < 6)}{
+			case
 			//toggle
-			{yPos == 0}{ 
+			{yPos == 0}{
 				ctl_press_cnt = ctl_press_cnt + 1;
 				if(ctl_press_cnt == 1)
 				{ this.toggle }
@@ -320,7 +322,7 @@ Transport {
 			// Tap and clear
 			{(yPos >= 1) && (yPos < 4)}{
 				if(xPos < 3)
-				{ this.clearTap; }{ 
+				{ this.clearTap; }{
 					ctl_press_cnt = ctl_press_cnt + 1;
 					if(ctl_press_cnt == 1){ this.tap(time) }
 				}
@@ -354,11 +356,11 @@ Transport {
 			}
 
 			//{yPos == 0}
-			{(yPos > 0) && (yPos <= 7)}{ 
+			{(yPos > 0) && (yPos <= 7)}{
 				tempo_press_cnt = tempo_press_cnt + 1;
 
 				case
-				{tempo_press_cnt == 1}{ 
+				{tempo_press_cnt == 1}{
 					last_tempo_press = [xPos, yPos];
 					tempo_pair_list.add([xPos,yPos]);
 
@@ -372,7 +374,7 @@ Transport {
 					var mask_num = 0;
 
 					tempo_pair_list = Set[];
-					
+
 					// find the right number for setting the lighting mask
 					right_mask = [128,0,0,0,0,0,0,0];
 					for(lastX, xPos,{|x| mask_num = mask_num + (2**(x - 8))});
@@ -388,17 +390,17 @@ Transport {
 					this.lightRightSide;
 				}
 			}
-			
+
 		}
 	}
 
 	releaseResponder {|xPos, yPos|
 		case
-		{ 
+		{
 			((xPos >= 0) && (xPos < 6) && (yPos == 0)) || 	// Toggle
 			((xPos >= 3) && (xPos < 6) && (yPos >= 1) && (yPos < 4))  // Tap
 		}
-		{ 
+		{
 			ctl_press_cnt = ctl_press_cnt - 1;
 			if(ctl_press_cnt < 0) { ctl_press_cnt = 0 }
 		}
@@ -424,8 +426,8 @@ Transport {
 	// For showing convienience
 	lightRightSide {
 		if(show_cnt > 0){
-			bridge.sendMsg(lpath +/+ 'map', 8,0, 
-				right_mask[0], right_mask[1], right_mask[2], right_mask[3], 
+			bridge.sendMsg(lpath +/+ 'map', 8,0,
+				right_mask[0], right_mask[1], right_mask[2], right_mask[3],
 				right_mask[4], right_mask[5], right_mask[6], right_mask[7])
 		}
 	}

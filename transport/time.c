@@ -45,14 +45,16 @@ int timespec_leq(struct timespec time1, struct timespec time2)
 int check_tick_expired(struct timespec elapsed, struct timespec period)
 {
 	if( timespec_geq(elapsed, period) ){
-		return 1; //puts("late");
+		//puts("late");
+		return 1; 
 	}
 
 	else{
 		struct timespec delta;
 		delta = timespec_norm(elapsed, period);
 		if( timespec_leq(delta, TOL) ){
-			return 1; //puts("early");
+			//puts("early");
+			return 1; 
 		}
 	}
 
@@ -102,11 +104,6 @@ double period_to_bpm(struct timespec period)
 	
 struct timespec bpm_to_period(double bpm)
 {
-	// this security should be eliminated later. Validation will occur in
-	// transport!
-	assert(bpm <= 400);
-	assert(bpm >= 0);
-
 	double sec_per_tick = ((double)1.0 / ((bpm * TICKS_PER_BEAT) / 60.0));
 	long long sec = (long long) sec_per_tick;
 	long long nsec = ((long long)((sec_per_tick - sec) * NANOS_PER_SEC));
