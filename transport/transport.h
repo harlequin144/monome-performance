@@ -30,27 +30,23 @@ struct transport{
 	lo_address monome_address;
 
 	struct client_list_node * tick_client_list;
-	struct client_list_node * bpm_client_list;
+	//struct client_list_node * bpm_client_list;
 };
 
 struct transport_params{
-	char * transport_port;
-	char * gui_port;
-	char * monome_port;
-	char * bridge_port;
+	char transport_port[6];
+	char monome_port[6];
+	char bridge_port[6];
 
 	struct client_list_node * tick_client_list;
-	struct client_list_node * bpm_client_list;
+	//struct client_list_node * bpm_client_list;
 };
 
 
-struct client{
-	lo_address addr;
-	char * prefix;
-};
  
 struct client_list_node{
-	struct client * client;
+	lo_address addr;
+	char * prefix;
 	struct client_list_node * next;
 };
 
@@ -65,9 +61,9 @@ void parse_config(struct transport_params * params);
 enum lcfg_status 
 config_iterator(const char * key, void * data, size_t len, void * user_data);
 
-void print_client_list(struct client_list_node * list);
-//void add_client(struct client_list_node ** list, char ** port, char ** prefix);
-void add_client(struct client_list_node ** list, char * port, char * prefix);
+void print_client_list(struct client_list_node ** trans);
+void add_tick_client(struct transport * trans, char * port, char * prefix);
+void add_client(struct client_list_node ** head, char * port, char * prefix);
 
 // The basic functions of the transport
 void quit(struct transport * trans);

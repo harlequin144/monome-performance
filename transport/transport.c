@@ -16,7 +16,7 @@
 
 struct monome{
 	int run;
-	int show; 
+	//int show; 
 	int press_count;
 	int bpm_mask[8];
 
@@ -52,17 +52,15 @@ struct monome{
 int main(void)
 {
 	struct transport_params params;
-	params.transport_port = "8001";
-	params.monome_port = "8002";
-	params.bridge_port = "8000";
-	params.tick_client_list = NULL;
-	params.bpm_client_list = NULL;
+	strcpy(params.transport_port, "8001");
+	strcpy(params.monome_port, "8002");
+	strcpy(params.bridge_port, "8000");
+	//params.tick_client_list = NULL;
+	//params.bpm_client_list = NULL;
 
 
-	//parse_config( &params );
+	parse_config( &params );
 	//parse_args( params );
-	
-
 
 	//pthread_t monome_thread;
 	//if( pthread_create( &monome_thread, NULL, start_monome, (void*) &params) )
@@ -73,27 +71,29 @@ int main(void)
 		puts("error setting the scheduler policy");
 
 
-	struct transport trans;
+	//struct transport * trans = malloc(sizeof(struct transport));
+	struct transport trans; 
+	struct monome * mono = malloc(sizeof(struct monome));
 
 	new_transport( &trans, &params );
-	//assert( trans != NULL );
+	new_monome( mono, "8002", "8001", "8000" );
 
-	struct monome mono;
-	new_monome( &mono, "8002", "8001", "8000" );
+	trans.tick_client_list = NULL;
 
-	//add_client(&(trans->tick_client_list), "8002", "/transport/monome");
-	//add_client(&(trans->bpm_client_list), "8002", "/transport/monome");
+	print_client_list( &(trans.tick_client_list ));
+
+	//puts(lo_address_get_port(*(trans.tick_client_list->addr)));
+	//printf("%i\n",(trans.tick_client_list->i));
+	//puts("I");
+	//puts(trans->tick_client_list->client.prefix);
 
 	send_bpm_msgs( &trans );
-	
-	//print_client_list(trans->tick_client_list);
+	print_client_list( &(trans.tick_client_list ));
+
+	start_transport_loop( &trans, mono);
 
 
-	start_transport_loop( &trans, &mono);
-
-	//start_x_gui();
-
-
+	free(mono);
 	//pthread_join( monome_thread, NULL );
 	exit(EXIT_SUCCESS);
 }
@@ -139,8 +139,9 @@ void new_transport( struct transport * trans, struct transport_params * params )
 	trans->on = 1;
 	trans->tick = 0;
 
-	trans->bpm_client_list = params->bpm_client_list;
-	trans->tick_client_list = params->tick_client_list;
+	//trans->bpm_client_list = params->bpm_client_list;
+	//trans->tick_client_list = malloc(sizeof(struct client_list_node));
+	trans->tick_client_list = NULL;
 
 	int return_code = 0;
 	return_code = clock_gettime(CLOCK_MONOTONIC, &(trans->last_tick_time));
@@ -203,159 +204,122 @@ void new_transport( struct transport * trans, struct transport_params * params )
 // Config File Processing
 //
 
-//void parse_config(struct transport_params * params)
-//{
-//	struct lcfg *c = lcfg_new("/home/dylan/.config/transport/transport.cfg");
-//
-//	if( lcfg_parse(c) != lcfg_status_ok ) 
-//		printf("Error reading config file: %s\n", lcfg_error_get(c));
-//
-//	else 
-//		lcfg_accept(c, config_iterator, params);
-//
-//	lcfg_delete(c);
-//}
-//
-//
-//enum lcfg_status
-//config_iterator(const char *key, void *data, size_t len, void *user_data) 
-//{
-//	// There may be some redundant validation happening here, but the job of
-//	// this function is to validate the config file and tell the user when there
-//	// is a problem with it. Validation of the parameters will happen when they
-//	// are used in one of the methods that directly alters the transport.
-//	
-//	struct transport_params * params = (struct transport_params *) user_data;
-//	const char * info = (const char *) data;
-//
-//	if( strcmp("transport-port", key) == 0){
-//		if(slre_match("\\d\\d\\d\\d\\d?\\d?", info, strlen(key)+1, NULL, 0, 0)>0){
-//
-//			params->transport_port = malloc(sizeof(char) * (len+1));
-//			int i;
-//			for( i = 0; i < len; i++ )
-//				params->transport_port[i] = *((const char *)(data + i));
-//			
-//			params->transport_port[len] = '\0';
-//		}
-//		else{
-//			puts("invalid data format in config file:");
-//			puts(key); puts(data);
-//		}
-//	}
-//
-//	else if( strcmp("bridge-port", key) == 0){
-//		if( slre_match("\\d\\d\\d\\d\\d?\\d?", info, len, NULL, 0, 0) > 0){
-//
-//			params->bridge_port = malloc(sizeof(char) * (len+1));
-//			int i;
-//			for( i = 0; i < len; i++ )
-//				params->bridge_port[i] = *((const char *)(data + i));
-//			
-//			params->bridge_port[len] = '\0';
-//		}
-//		else{
-//			puts("invalid data format in config file:");
-//			puts(key); puts(data);
-//		}
-//	}
-//
-//	else if( strcmp("monome-port", key) == 0){
-//		if( slre_match("\\d\\d\\d\\d\\d?\\d?", info, len, NULL, 0, 0) > 0){
-//
-//			params->monome_port = malloc(sizeof(char) * (len+1));
-//			int i;
-//			for( i = 0; i < len; i++ )
-//				params->monome_port[i] = *((const char *)(data + i));
-//			
-//			params->monome_port[len] = '\0';
-//		}
-//		else{
-//			puts("invalid data format in config file:");
-//			puts(key); puts(data);
-//		}
-//	}
-//
-//	//else if( strcmp("gui-port", key) == 0){
-//	//	if( slre_match("\\d\\d\\d\\d\\d?\\d?", info, strlen(key)+1,  NULL, 0, 0) > 0){
-//	//		
-//	//		params->gui_port = malloc(sizeof(char) * len);
-//	//		strcpy(params->gui_port, info);
-//	//	}
-//	//	else{
-//	//		puts("invalid data format in config file:");
-//	//		puts(key); puts(data);
-//	//	}
-//	//}
-//
-//	else{
-//		struct slre_cap caps[2];
-//		const char * regex = "(\\d\\d\\d\\d\\d?\\d?):(/[^\\s\\n\\r\\f\\v\\t\\b]+)";
-//
-//		if( slre_match("tick-clients\\.\\d", key, strlen(key)+1, NULL, 0, 0) > 0){
-//
-//			if( slre_match(regex, info, strlen(info)+1, caps, 2, 0) > 0){
-//				//printf("Found URL: [%.*s]\n", caps[0].len, caps[0].ptr);
+void parse_config(struct transport_params * params)
+{
+	struct lcfg *c = lcfg_new("/home/dylan/.config/transport/transport.cfg");
+
+	if( lcfg_parse(c) != lcfg_status_ok ) 
+		printf("Error reading config file: %s\n", lcfg_error_get(c));
+
+	else 
+		lcfg_accept(c, config_iterator, params);
+
+	lcfg_delete(c);
+}
+
+
+enum lcfg_status
+config_iterator(const char *key, void *data, size_t len, void *user_data) 
+{
+	// There may be some redundant validation happening here, but the job of
+	// this function is to validate the config file and tell the user when there
+	// is a problem with it. Validation of the parameters will happen when they
+	// are used in one of the methods that directly alters the transport.
+	
+	struct transport_params * params = (struct transport_params *) user_data;
+	const char * info = (const char *) data;
+
+	if( strcmp("transport-port", key) == 0){
+		if( slre_match("\\d\\d\\d\\d\\d?\\d?", info, strlen(info)+1,NULL,0,0) > 0 )
+			strncpy(params->transport_port, data, len);
+		
+		else{
+			puts("invalid data format in config file:");
+			puts(key); puts(data);
+		}
+	}
+
+	else if( strcmp("bridge-port", key) == 0){
+		if( slre_match("\\d\\d\\d\\d\\d?\\d?", info, strlen(info)+1,NULL,0,0) > 0 )
+			strncpy(params->bridge_port, data, len);
+		
+		else{
+			puts("invalid data format in config file:"); puts(key); puts(data);
+		}
+	}
+
+	else if( strcmp("monome-port", key) == 0){
+		if( slre_match("\\d\\d\\d\\d\\d?\\d?", info, strlen(info)+1,NULL,0,0) > 0 )
+			strncpy(params->monome_port, data, len);
+		
+		else{
+			puts("invalid data format in config file:"); puts(key); puts(data);
+		}
+	}
+
+	else{
+		struct slre_cap caps[2];
+		const char * regex = "(\\d\\d\\d\\d\\d?\\d?):(/[^\\s\\n\\r\\f\\v\\t\\b]+)";
+
+		if( slre_match("tick-clients\\.\\d", key, strlen(key)+1, NULL, 0, 0) > 0){
+			if( slre_match(regex, info, strlen(info)+1, caps, 2, 0) > 0 ){
+				//printf("Found URL: [%.*s]\n", caps[0].len, caps[0].ptr);
+				char * port = malloc(sizeof(char) * (caps[0].len+1));
+				char * prefix = malloc(sizeof(char) * (caps[1].len+1));
+				strncpy(port, caps[0].ptr, caps[0].len+1);
+				strncpy(prefix, caps[1].ptr, caps[1].len+1);
+//				port[caps[0].len] = '\0';
+//				prefix[caps[1].len] = '\0';
+
+				//add_client( &(params->tick_client_list), port, prefix);
+			}
+			else{
+				puts("invalid data format in config file:");
+				puts(key); puts(data);
+			}
+		}
+
+		else 
+		if( slre_match("bpm-clients\\.\\d", key, strlen(key)+1, NULL, 0, 0) > 0){
+			if( slre_match(regex, info, strlen(info)+1, caps, 2, 0) > 0 ){
 //				char * port = malloc(sizeof(char) * (caps[0].len+1));
 //				char * prefix = malloc(sizeof(char) * (caps[1].len+1));
 //				strncpy(port, caps[0].ptr, caps[0].len+1);
 //				strncpy(prefix, caps[1].ptr, caps[1].len+1);
 //				port[caps[0].len] = '\0';
 //				prefix[caps[1].len] = '\0';
-//				add_client( &(params->tick_client_list), &port, &prefix );
-//			}
-//			else{
-//				puts("invalid data format in config file:");
-//				puts(key); puts(data);
-//			}
-//		}
-//
-//		else 
-//		if( slre_match("bpm-clients\\.\\d", key, strlen(key)+1, NULL, 0, 0) > 0){
-//
-//			if( slre_match(regex, info, strlen(info)+1, caps, 2, 0) > 0)
-//			{
-//				char * port = malloc(sizeof(char) * (caps[0].len+1));
-//				char * prefix = malloc(sizeof(char) * (caps[1].len+1));
-//				strncpy(port, caps[0].ptr, caps[0].len+1);
-//				strncpy(prefix, caps[1].ptr, caps[1].len+1);
-//				port[caps[0].len] = '\0';
-//				prefix[caps[1].len] = '\0';
-//				add_client( &(params->bpm_client_list), &port, &prefix );
-//			}
-//			else{
-//				puts("invalid data format in config file:");
-//				puts(key); puts(data);
-//			}
-//		}
-//
-//		else{
-//			puts("Found and invalid key in config file:");
-//			puts(key); puts(data);
-//		}
-//
-//	}
-//
-//	return lcfg_status_ok;
-//}
+			}
+			else{
+				puts("invalid data format in config file:");
+				puts(key); puts(data);
+			}
+		}
+
+		else{
+			puts("Found and invalid key in config file:");
+			puts(key); puts(data);
+		}
+	}
+
+	return lcfg_status_ok;
+}
 
 
 //
 // Client Methods
 //
 
-void print_client_list(struct client_list_node * node)
+void print_client_list(struct client_list_node ** list)
 {
-	if( node != NULL ){
-		printf("\t->");
-		printf(lo_address_get_port(node->client->addr));
-		printf(":");
-		printf(node->client->prefix);
-		printf("<-\n");
-		print_client_list(node->next);
+
+	if( *list != NULL ){
+		printf("%s:", lo_address_get_port((*list)->addr));
+		printf("%s\n", (*list)->prefix);
+
+		print_client_list(&((*list)->next));
 	}
 	else{
-		puts("reached end");
+		puts("End of client list");
 	}
 }
 //
@@ -391,42 +355,31 @@ int set_bpm(struct transport * trans, double bpm)
 }
 
 void 
-//add_client(struct client_list_node ** node, char ** port, char ** prefix)
-add_client(struct client_list_node ** node, char * port, char * prefix)
+add_tick_client(struct transport * trans, char * port, char * prefix)
 {
-	if( *node == NULL ){
-		if(
-			(slre_match("\\d\\d\\d\\d\\d?\\d?", port, strlen(port) + 1, NULL,0,0)
-			 > 0)
-		&&
-			(slre_match("/\\S+", prefix, strlen(prefix) + 1, NULL, 0, 0) > 0)
-		)
-		{	
-			*node = 
-				(struct client_list_node*) malloc(sizeof(struct client_list_node));
-			(*node)->client = (struct client*) malloc(sizeof(struct client));
-			(*node)->next = NULL;
+	add_client( &(trans->tick_client_list), port, prefix);
+}
 
-			(*node)->client->prefix = malloc(sizeof(char) * (strlen(prefix) + 1));
-
-
-			(*node)->client->addr = lo_address_new("localhost", port);
-			memcpy((*node)->client->prefix, prefix, strlen(prefix) + 1);
-
-		}
-		else
-			puts("got an attempt to register invalid bpm client");
+void 
+add_client(struct client_list_node ** tracer, char * port, char * prefix)
+{
+	if( *tracer != NULL ){
+		add_client(&(*tracer)->next, port, prefix);
 	}
-	
+
 	else{
-		assert((*node)->client != NULL);
-		if( ( strcmp((*node)->client->prefix, prefix) != 0 ) ||
-				(	strcmp(lo_address_get_port( (*node)->client->addr ), port) != 0 ) 
-		){
-			add_client(&((*node)->next), port, prefix);
-		}
+		*tracer = (malloc(sizeof(struct client_list_node)));
+
+		(*tracer)->next = NULL;
+		(*tracer)->prefix = malloc(sizeof(char) * (strlen(prefix) + 1)) ;
+		strcpy( (*tracer)->prefix, prefix );
+		(*tracer)->addr = lo_address_new(NULL, port);
 	}
 }
+
+//void 
+//add_bpm_client(struct transport * trans, char * port, char * prefix)
+//{
 
 
 
@@ -533,24 +486,17 @@ int add_bpm_client_handler(const char *path, const char *types, lo_arg **
 	//port[strlen(&(argv[1]->S)) + 1] = '\0';
 	//prefix[strlen(&(argv[1]->S)) + 1] = '\0';
 	//puts(prefix);
-	//add_client( &(trans->bpm_client_list), &port, &prefix );
 }
 
 int add_tick_client_handler(const char *path, const char *types, lo_arg **
 												argv, int argc, void *data, void *user_data)
 {
 	struct transport * trans = (struct transport *) user_data;
-
 	//char * port = malloc(sizeof(char) * (strlen(&(argv[1]->S)) + 4));
 	//char * prefix = malloc(sizeof(char) * (strlen(&(argv[1]->S)) + 4));
 	//strcpy(port, &(argv[1]->s));
 	//strcpy(prefix, &(argv[0]->s));
-	//port[strlen(&(argv[1]->S)) + 1] = '\0';
-	//prefix[strlen(&(argv[1]->S)) + 1] = '\0';
-	//puts(prefix);
-	
-	//add_client( &(trans->tick_client_list), &port, &prefix );
-	
+	add_tick_client( trans, &(argv[1]->s), &(argv[0]->s));
 }
 
 

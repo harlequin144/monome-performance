@@ -28,15 +28,15 @@
 
 
 struct monome * 
-new_monome( struct monome * mono, char * monome_port, char * transport_port, char * bridge_port)
+new_monome( struct monome * mono, char * monome_port, char * transport_port,
+		char * bridge_port)
 {
-	//struct monome * mono = (struct monome *) malloc(sizeof(struct monome));
 
 	//time_t t;
 	//srand((unsigned) time(&t));
 
 	mono->run = 1;
-	mono->show = 1;
+	//mono->show = 1;
 
 	mono->bpm_mask[0] = 128 + 64;
 	mono->bpm_mask[1] = 128 + 64;
@@ -101,36 +101,36 @@ void * start_monome_loop(struct monome * mono)
 
 void led_up(struct monome * mono)
 {
-	//lo_send(mono->bridge_address, "/transport/grid/led/map", "iiiiiiiiii", 0, 0,
-	lo_send(lo_address_new(NULL, "8000"), "/transport/grid/led/map", "iiiiiiiiii", 0, 0,
+	lo_send(mono->bridge_address, "/transport/grid/led/map", "iiiiiiiiii", 0, 0,
+	//lo_send(lo_address_new(NULL, "8000"), "/transport/grid/led/map", "iiiiiiiiii", 0, 0,
 			LED_MASK_UP);
 }
 
 void led_down(struct monome * mono)
 {
-	//lo_send(mono->bridge_address, "/transport/grid/led/map", "iiiiiiiiii", 0, 0,
-	lo_send(lo_address_new(NULL, "8000"), "/transport/grid/led/map", "iiiiiiiiii", 0, 0,
+	lo_send(mono->bridge_address, "/transport/grid/led/map", "iiiiiiiiii", 0, 0,
+	//lo_send(lo_address_new(NULL, "8000"), "/transport/grid/led/map", "iiiiiiiiii", 0, 0,
 			LED_MASK_DOWN);
 }
 
 void led_stop(struct monome * mono)
 {
-	//lo_send(mono->bridge_address, "/transport/grid/led/map", "iiiiiiiiii", 0, 0,
-	lo_send(lo_address_new(NULL, "8000"), "/transport/grid/led/map", "iiiiiiiiii", 0, 0,
+	lo_send(mono->bridge_address, "/transport/grid/led/map", "iiiiiiiiii", 0, 0,
+	//lo_send(lo_address_new(NULL, "8000"), "/transport/grid/led/map", "iiiiiiiiii", 0, 0,
 			LED_MASK_STOP);
 }
 
 void led_clear(struct monome * mono)
 {
-	//lo_send(mono->bridge_address, "/transport/grid/led/map", "iiiiiiiiii", 0, 0,
-	lo_send(lo_address_new(NULL, "8000"), "/transport/grid/led/map", "iiiiiiiiii", 0, 0,
+	lo_send(mono->bridge_address, "/transport/grid/led/map", "iiiiiiiiii", 0, 0,
+	//lo_send(lo_address_new(NULL, "8000"), "/transport/grid/led/map", "iiiiiiiiii", 0, 0,
 			LED_MASK_CLEAR);
 }
 
 void led_bpm(struct monome * mono)
 {
-	//lo_send(mono->bridge_address, "/transport/grid/led/map", "iiiiiiiiii", 8, 0,
-	lo_send(lo_address_new(NULL, "8000"), "/transport/grid/led/map", "iiiiiiiiii", 8, 0,
+	lo_send(mono->bridge_address, "/transport/grid/led/map", "iiiiiiiiii", 8, 0,
+	//lo_send(lo_address_new(NULL, "8000"), "/transport/grid/led/map", "iiiiiiiiii", 8, 0,
 		mono->bpm_mask[0], mono->bpm_mask[1],
 		mono->bpm_mask[2], mono->bpm_mask[3],
 		mono->bpm_mask[4], mono->bpm_mask[5],
@@ -202,15 +202,21 @@ int monome_stop_handler(const char *path, const char *types, lo_arg ** argv,
 	return 0;
 }
 
+void show( struct monome * mono)
+{
+	//mono->show = 1;
+
+	led_stop( mono );
+	led_bpm( mono );
+}
+
+	
 int show_handler(const char *path, const char *types, lo_arg ** argv,
 		                    int argc, void *data, void *user_data)
 {
 	struct monome * mono = (struct monome *) user_data;
-	mono->show = 1;
+	show( mono );
 
-	led_stop( mono );
-	led_bpm( mono );
-	
 	return 0;
 }
 
@@ -218,7 +224,7 @@ int hide_handler(const char *path, const char *types, lo_arg ** argv,
 		                    int argc, void *data, void *user_data)
 {
 	struct monome * mono = (struct monome *) user_data;
-	mono->show = 0;
+	//mono->show = 0;
 	return 0;
 }
 
@@ -231,7 +237,7 @@ int set_monome_bpm_handler(const char *path, const char *types, lo_arg ** argv,
 	float bpm = argv[0]->f;
 	if( (bpm > 19) && (bpm < 401) ){
 		set_bpm_mask(mono, bpm);
-		if( mono->show )
+		//if( mono->show )
 			led_bpm( mono );
 	}
 
