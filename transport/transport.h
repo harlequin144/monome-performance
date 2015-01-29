@@ -58,7 +58,8 @@ struct client_list_node{
 
 //void start_transport_loop(struct transport * tran);
 void start_transport_loop(struct transport * trans, struct monome * mono);
-struct transport * new_transport();
+//struct transport * new_transport();
+void new_transport(struct transport * trans, struct transport_params * params);
 
 void parse_config(struct transport_params * params);
 enum lcfg_status 

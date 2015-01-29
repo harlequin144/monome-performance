@@ -73,20 +73,23 @@ int main(void)
 		puts("error setting the scheduler policy");
 
 
-	struct transport * trans = new_transport( &params );
-	assert( trans != NULL );
+	struct transport trans;
 
-	struct monome * mono = new_monome("8002", "8001", "8000" );
+	new_transport( &trans, &params );
+	//assert( trans != NULL );
+
+	struct monome mono;
+	new_monome( &mono, "8002", "8001", "8000" );
 
 	//add_client(&(trans->tick_client_list), "8002", "/transport/monome");
 	//add_client(&(trans->bpm_client_list), "8002", "/transport/monome");
 
-	send_bpm_msgs( trans );
+	send_bpm_msgs( &trans );
 	
 	//print_client_list(trans->tick_client_list);
 
 
-	start_transport_loop( trans, mono);
+	start_transport_loop( &trans, &mono);
 
 	//start_x_gui();
 
@@ -127,13 +130,13 @@ void start_transport_loop(struct transport * trans, struct monome * mono)
 }
 
 
-struct transport * new_transport( struct transport_params * params )
+//struct transport * new_transport( struct transport_params * params )
+void new_transport( struct transport * trans, struct transport_params * params )
 {
-	struct transport * trans;
-	trans = (struct transport*) malloc( sizeof(struct transport));
+	//trans = (struct transport*) malloc( sizeof(struct transport));
 
 	trans->run = 1;
-	trans->on = 0;
+	trans->on = 1;
 	trans->tick = 0;
 
 	trans->bpm_client_list = params->bpm_client_list;
@@ -149,7 +152,7 @@ struct transport * new_transport( struct transport_params * params )
 	trans->osc_server = lo_server_new(params->transport_port, error);
 	if(!(trans->osc_server)){
 		puts("Failed to make ther osc server");
-		return NULL;
+		//return NULL;
 	}
 
 
@@ -191,7 +194,7 @@ struct transport * new_transport( struct transport_params * params )
 
 
 	
-	return trans;
+	//return trans;
 }
 
 
