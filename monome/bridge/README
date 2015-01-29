@@ -88,9 +88,10 @@ Protocol:
 
 	When a program is chosen on the monome, the bridge will send a
 	'/prefix/show' message to the program. Similary, when the user chooses to
-	exit the program via the cli (backspace), a '/prefix/hide' message is sent.
-	This can be used to reduce osc traffic. When a program is hidden, it can
-	cease to send useless led messages until it again recieves the show message.
+	exit the program via the cli (backspace), a '/prefix/hide' message must be
+	sent by the client.  This can be used to reduce osc traffic. When a program
+	is hidden, it can cease to send useless led messages until it again recieves
+	the show message.
 
 	A program can tell the bridge that it wishes to forfeit its control of the
 	monome back to the bridge my sending '/prefix/hide' to the bridge.

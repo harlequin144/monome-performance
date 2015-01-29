@@ -28,7 +28,6 @@ struct transport{
 
 	lo_server osc_server;
 	lo_address monome_address;
-	//lo_address gui_address;
 
 	struct client_list_node * tick_client_list;
 	struct client_list_node * bpm_client_list;
@@ -57,15 +56,17 @@ struct client_list_node{
 
 
 
-void start_transport_loop(struct transport * tran);
+//void start_transport_loop(struct transport * tran);
+void start_transport_loop(struct transport * trans, struct monome * mono);
 struct transport * new_transport();
 
-void read_config(struct transport_params * params);
+void parse_config(struct transport_params * params);
 enum lcfg_status 
 config_iterator(const char * key, void * data, size_t len, void * user_data);
 
 void print_client_list(struct client_list_node * list);
-void add_client(struct client_list_node ** list, char ** port, char ** prefix);
+//void add_client(struct client_list_node ** list, char ** port, char ** prefix);
+void add_client(struct client_list_node ** list, char * port, char * prefix);
 
 // The basic functions of the transport
 void quit(struct transport * trans);
@@ -111,10 +112,10 @@ int dec_bpm_handler(const char *path, const char *types, lo_arg ** argv,
 		                    int argc, void *data, void *user_data);
 
 
-int reg_bpm_rcvr_handler(const char *path, const char *types, lo_arg **
+int add_bpm_client_handler(const char *path, const char *types, lo_arg **
 		argv, int argc, void *data, void *user_data);
 
-int reg_tick_rcvr_handler(const char *path, const char *types, lo_arg **
+int add_tick_client_handler(const char *path, const char *types, lo_arg **
 		argv, int argc, void *data, void *user_data);
 
 int monome_press_handler(const char *path, const char *types, lo_arg **
