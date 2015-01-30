@@ -17,7 +17,8 @@ const struct sched_param SCHED_PARAM = {.sched_priority = 90};
 
 
 
-struct transport{
+struct transport
+{
 	char run;
 	char on;
 
@@ -33,7 +34,8 @@ struct transport{
 	//struct client_list_node * bpm_client_list;
 };
 
-struct transport_params{
+struct transport_params
+{
 	char transport_port[6];
 	char monome_port[6];
 	char bridge_port[6];
@@ -52,17 +54,16 @@ struct client_list_node{
 
 
 
-//void start_transport_loop(struct transport * tran);
-void start_transport_loop(struct transport * trans, struct monome * mono);
-//struct transport * new_transport();
 void new_transport(struct transport * trans, struct transport_params * params);
+void start_transport_loop(struct transport * trans );
 
 void parse_config(struct transport_params * params);
-enum lcfg_status 
-config_iterator(const char * key, void * data, size_t len, void * user_data);
+enum lcfg_status config_iterator(
+		const char * key, void * data, size_t len, void * user_data);
 
 void print_client_list(struct client_list_node ** trans);
 void add_tick_client(struct transport * trans, char * port, char * prefix);
+void add_bpm_client(struct transport * trans, char * port, char * prefix);
 void add_client(struct client_list_node ** head, char * port, char * prefix);
 
 // The basic functions of the transport
@@ -73,19 +74,12 @@ int set_bpm(struct transport * trans, double bpm);
 //int tap(struct transport * trans)
 //int clear_tap(struct transport * trans)
 
-void reg_bpm_client(struct transport * trans, char * prefix, char * port);
-void reg_tick_client(struct transport * trans, char * prefix, char * port);
 
 
+//
+// The osc handlers 
+//
 
-
-//#ifndef TRANSPORT_OSC_H
-//#define TRANSPORT_OSC_H
-
-//#include "lo/lo.h"
-
-
-// The basic osc handlers 
 int start_handler(const char *path, const char *types, lo_arg ** argv,
 		                    int argc, void *data, void *user_data);
 int stop_handler(const char *path, const char *types, lo_arg ** argv,
@@ -135,6 +129,5 @@ void send_tick_msgs(struct transport * trans);
 void send_bpm_msgs(struct transport * trans);
 void send_stop_msgs(struct transport * trans);
 
-//#endif
 
 #endif

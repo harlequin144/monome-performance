@@ -6,31 +6,15 @@
 #include <unistd.h>
 #include <math.h>
 
+#include <lo/lo.h>
 
 #include "lcfg_static.h"
 #include "lcfg_static.c"
 #include "slre.h"
 #include "slre.c"
 
-#include <lo/lo.h>
-
-struct monome{
-	int run;
-	//int show; 
-	int press_count;
-	int bpm_mask[8];
-
-	lo_server monome_osc_server;
-	lo_address bridge_address;
-	lo_address transport_address;
-
-};
-
-
-
 #include "time.c"
 #include "transport.h"
-//#include "gui.c"
 #include "monome.h"
 #include "monome.c"
  
@@ -49,18 +33,13 @@ struct monome{
 
 
 
-int main(void)
+int main( void )
 {
 	struct transport_params params;
 	struct transport trans;
-	struct monome * mono = malloc(sizeof(struct monome));
 
 	parse_config( &params );
 	//parse_args( params );
-
-	//pthread_t monome_thread;
-	//if( pthread_create( &monome_thread, NULL, start_monome, (void*) &params) )
-		//puts("error making monome thread");
 
 
 	if( sched_setscheduler(0, SCHED_RR, &SCHED_PARAM) == SCHED_RR )
@@ -68,23 +47,26 @@ int main(void)
 
 
 	new_transport( &trans, &params );
-	new_monome( mono, "8002", "8001", "8000" );
 
+
+	pthread_t monome_thread;
+	if( pthread_create( &monome_thread, NULL, start_monome, (void*) &params) )
+		puts("error making monome thread");
+		
 
 	send_bpm_msgs( &trans );
 	print_client_list( &(trans.tick_client_list ));
 
-	start_transport_loop( &trans, mono);
+
+	start_transport_loop( &trans );
 
 
-	free(mono);
-	//pthread_join( monome_thread, NULL );
+	pthread_join( monome_thread, NULL );
 	exit(EXIT_SUCCESS);
 }
 
 
-//void start_transport_loop(struct transport * trans)
-void start_transport_loop(struct transport * trans, struct monome * mono)
+void start_transport_loop( struct transport * trans )
 {
 	int return_code;
 	struct timespec elapsed_time;
@@ -108,15 +90,14 @@ void start_transport_loop(struct transport * trans, struct monome * mono)
 		}
 
 		lo_server_recv_noblock(trans->osc_server, 0);
-		lo_server_recv_noblock(mono->monome_osc_server, 0);
 		nanosleep(&SLEEP_TIME, &rem);
 	}
 }
 
 
-void 
-new_transport( struct transport * trans, struct transport_params * params )
-{
+void new_transport ( 
+	struct transport * trans, struct transport_params * params
+) {
 	trans->run = 1;
 	trans->on = 1;
 	trans->tick = 0;
@@ -200,7 +181,7 @@ new_transport( struct transport * trans, struct transport_params * params )
 // Config File Processing
 //
 
-void parse_config(struct transport_params * params)
+void parse_config( struct transport_params * params )
 {
 	strcpy(params->transport_port, "8001");
 	strcpy(params->monome_port, "8002");
@@ -220,9 +201,9 @@ void parse_config(struct transport_params * params)
 }
 
 
-enum lcfg_status
-config_iterator(const char *key, void *data, size_t len, void *user_data) 
-{
+enum lcfg_status config_iterator (
+	const char *key, void *data, size_t len, void *user_data 
+) {
 	// There may be some redundant validation happening here, but the job of
 	// this function is to validate the config file and tell the user when there
 	// is a problem with it. Validation of the parameters will happen when they
@@ -307,7 +288,7 @@ config_iterator(const char *key, void *data, size_t len, void *user_data)
 // Client Methods
 //
 
-void print_client_list(struct client_list_node ** list)
+void print_client_list( struct client_list_node ** list )
 {
 
 	if( *list != NULL ){
@@ -328,24 +309,24 @@ void print_client_list(struct client_list_node ** list)
 // all validation happens here.
 //
 
-void quit(struct transport * trans)
+void quit( struct transport * trans )
 {
 	trans->run = 0;
 }
 
 
-void set_loop_on(struct transport * trans)
+void set_loop_on( struct transport * trans )
 {
 	trans->on = 1;
 }
 
-void set_loop_off(struct transport * trans)
+void set_loop_off( struct transport * trans )
 {
 	trans->on = 0;
 	send_stop_msgs(trans);
 }
 
-int set_bpm(struct transport * trans, double bpm)
+int set_bpm( struct transport * trans, double bpm )
 {
 	struct timespec period = bpm_to_period( bpm );
 	if( validate_period(period) ){
@@ -354,9 +335,9 @@ int set_bpm(struct transport * trans, double bpm)
 	}
 }
 
-void 
-add_tick_client(struct transport * trans, char * port, char * prefix)
+void add_tick_client( struct transport * trans, char * port, char * prefix )
 {
+	// validate!!!
 	add_client( &(trans->tick_client_list), port, prefix);
 }
 
@@ -366,21 +347,20 @@ add_tick_client(struct transport * trans, char * port, char * prefix)
 	//add_client( &(trans->bpm_client_list), port, prefix);
 //}
 
-void 
-add_client(struct client_list_node ** tracer, char * port, char * prefix)
-{
-	if( *tracer != NULL ){
-		add_client(&(*tracer)->next, port, prefix);
-	}
-
-	else{
-		*tracer = (malloc(sizeof(struct client_list_node)));
+void add_client( 
+	struct client_list_node ** tracer, char * port, char * prefix 
+) {
+	if( *tracer == NULL ){
+		*tracer = malloc(sizeof(struct client_list_node));
 
 		(*tracer)->next = NULL;
 		(*tracer)->prefix = malloc(sizeof(char) * (strlen(prefix) + 1)) ;
 		strcpy( (*tracer)->prefix, prefix );
 		(*tracer)->addr = lo_address_new(NULL, port);
 	}
+
+	else
+		add_client(&(*tracer)->next, port, prefix);
 }
 
 
@@ -394,9 +374,10 @@ add_client(struct client_list_node ** tracer, char * port, char * prefix)
 // OSC
 //
 
-int generic_handler(const char *path, const char *types, lo_arg ** argv,
-		                    int argc, void *data, void *user_data)
-{
+int generic_handler (
+	const char *path, const char *types, lo_arg ** argv, int argc, void *data,
+	void *user_data
+) {
 	if( GENERIC_PRINT ){
 		int i;
 
@@ -413,18 +394,20 @@ int generic_handler(const char *path, const char *types, lo_arg ** argv,
 }
 
 
-int quit_handler(const char *path, const char *types, lo_arg ** argv,
-		                    int argc, void *data, void *user_data)
-{
+int quit_handler ( 
+	const char *path, const char *types, lo_arg ** argv, int argc, void *data,
+	void *user_data
+) {
 	struct transport * trans = (struct transport *) user_data;
 	lo_send(trans->monome_address, "/transport/monome/quit", NULL);
 	quit(trans);
 	return 0;
 }
 
-int toggle_handler(const char *path, const char *types, lo_arg ** argv,
-		                    int argc, void *data, void *user_data)
-{
+int toggle_handler ( 
+	const char *path, const char *types, lo_arg ** argv, int argc, void *data,
+	void *user_data
+) {
 	struct transport * trans = (struct transport *) user_data;
 	if( trans->on )
 		set_loop_off( trans );
@@ -434,17 +417,19 @@ int toggle_handler(const char *path, const char *types, lo_arg ** argv,
 	return 0;
 }
 
-int start_handler(const char *path, const char *types, lo_arg ** argv,
-		                    int argc, void *data, void *user_data)
-{
+int start_handler (
+	const char *path, const char *types, lo_arg ** argv, int argc, void *data,
+	void *user_data
+) {
 	struct transport * trans = (struct transport *) user_data;
 	set_loop_on( trans );
 	return 0;
 }
 
-int stop_handler(const char *path, const char *types, lo_arg ** argv,
-		                    int argc, void *data, void *user_data)
-{
+int stop_handler (
+	const char *path, const char *types, lo_arg ** argv, int argc, void *data,
+	void *user_data
+) {
 	struct transport * trans = (struct transport *) user_data;
 	set_loop_off( trans );
 	send_stop_msgs( trans );
@@ -456,36 +441,41 @@ int stop_handler(const char *path, const char *types, lo_arg ** argv,
 //int clear_tap_handler(const char *path, const char *types, lo_arg ** argv,
 //		                    int argc, void *data, void *user_data);
 
-int set_bpm_handler(const char *path, const char *types, lo_arg ** argv,
-		                    int argc, void *data, void *user_data)
+int set_bpm_handler (
+	const char *path, const char *types, lo_arg ** argv, int argc, void *data,
+	void *user_data )
 {
 	struct transport * trans = (struct transport *) user_data;
 	set_bpm(trans, argv[0]->f) ;
 }
 
-int inc_bpm_handler(const char *path, const char *types, lo_arg ** argv,
-		                    int argc, void *data, void *user_data)
+int inc_bpm_handler (
+	const char *path, const char *types, lo_arg ** argv, int argc, void *data,
+	void *user_data )
 {
 	struct transport * trans = (struct transport *) user_data;
 	set_bpm(trans, period_to_bpm(trans->tick_period) + 1);
 }
 
-int dec_bpm_handler(const char *path, const char *types, lo_arg ** argv,
-		                    int argc, void *data, void *user_data)
+int dec_bpm_handler (
+	const char *path, const char *types, lo_arg ** argv, int argc, void *data,
+	void *user_data ) 
 {
 	struct transport * trans = (struct transport *) user_data;
 	set_bpm(trans, period_to_bpm(trans->tick_period) - 1);
 }
 
-int add_bpm_client_handler(const char *path, const char *types, lo_arg **
-												argv, int argc, void *data, void *user_data)
+int add_bpm_client_handler (
+	const char *path, const char *types, lo_arg ** argv, int argc, void *data,
+	void *user_data ) 
 {
 	struct transport * trans = (struct transport *) user_data;
 	//add_bpm_client( trans, &(argv[1]->s), &(argv[0]->s));
 }
 
-int add_tick_client_handler(const char *path, const char *types, lo_arg **
-												argv, int argc, void *data, void *user_data)
+int add_tick_client_handler (
+	const char *path, const char *types, lo_arg ** argv, int argc, void *data,
+	void *user_data )
 {
 	struct transport * trans = (struct transport *) user_data;
 	//char * port = malloc(sizeof(char) * (strlen(&(argv[1]->S)) + 4));
@@ -496,31 +486,35 @@ int add_tick_client_handler(const char *path, const char *types, lo_arg **
 }
 
 
-int monome_press_handler(const char *path, const char *types, lo_arg ** argv,
-		                    int argc, void *data, void *user_data)
-{
+int monome_press_handler (
+	const char *path, const char *types, lo_arg ** argv, int argc, void *data,
+	void *user_data
+) {
 	struct transport * trans = (struct transport *) user_data;
 
 	lo_send(trans->monome_address, "/transport/monome/grid/key", "iii",
 			argv[0]->i, argv[1]->i, argv[2]->i);
 }
 
-int monome_show_handler(const char *path, const char *types, lo_arg ** argv,
-		                    int argc, void *data, void *user_data)
-{
+int monome_show_handler (
+	const char *path, const char *types, lo_arg ** argv, int argc, void *data,
+	void *user_data
+) {
 	struct transport * trans = (struct transport *) user_data;
 	lo_send(trans->monome_address, "/transport/monome/show", NULL);
 }
 
-int monome_hide_handler(const char *path, const char *types, lo_arg ** argv,
-		                    int argc, void *data, void *user_data)
-{
+int monome_hide_handler (
+	const char *path, const char *types, lo_arg ** argv, int argc, void *data,
+	void *user_data
+) {
 	struct transport * trans = (struct transport *) user_data;
 	lo_send(trans->monome_address, "/transport/monome/hide", NULL);
 }
 
 // osc server error func
-void error(int num, const char *msg, const char *path){
+void error( int num, const char *msg, const char *path )
+{
 	printf("loblo server error %d in path %s: %s\n", num, path, msg);
 	fflush(stdout);
 }
@@ -532,7 +526,7 @@ void error(int num, const char *msg, const char *path){
 //
 
 
-void send_tick_msgs(struct transport * trans)
+void send_tick_msgs( struct transport * trans )
 {
 	struct client_list_node * iterator = trans->tick_client_list;
 	
@@ -543,11 +537,11 @@ void send_tick_msgs(struct transport * trans)
 		
 		lo_send(iterator->addr, path, "i", trans->tick);
 		iterator = iterator->next;
-		free(path)
+		free(path);
 	}
 }
 
-void send_bpm_msgs(struct transport * trans)
+void send_bpm_msgs( struct transport * trans )
 {
 	struct client_list_node * iterator = trans->tick_client_list;
 	
@@ -558,11 +552,11 @@ void send_bpm_msgs(struct transport * trans)
 		
 		lo_send(iterator->addr, path, "f", period_to_bpm(trans->tick_period));
 		iterator = iterator->next;
-		free(path)
+		free(path);
 	}
 }
 
-void send_stop_msgs(struct transport * trans)
+void send_stop_msgs( struct transport * trans )
 {
 	struct client_list_node * iterator = trans->tick_client_list;
 	
@@ -573,6 +567,6 @@ void send_stop_msgs(struct transport * trans)
 		
 		lo_send(iterator->addr, path, NULL);
 		iterator = iterator->next;
-		free(path)
+		free(path);
 	}
 }

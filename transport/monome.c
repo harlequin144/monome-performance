@@ -8,35 +8,28 @@
 // - inc, dec
 // - set bpm
 
-//change
-//
 
-//void *start_monome( void *ptr )
-//{
-//	struct transport_params * params= (struct transport_params*) ptr; 
-//
-//	struct monome * mono = new_monome(params->monome_port,
-//			params->transport_port, params->bridge_port );
-//	//mono = new_monome(params->monome_port,
-//	assert( mono != NULL );
-//
-//	led_stop(mono);
-//	led_bpm(mono);
-//
-//	start_monome_loop( mono );
-//}
-
-
-struct monome * 
-new_monome( struct monome * mono, char * monome_port, char * transport_port,
-		char * bridge_port)
+void *start_monome( void *ptr )
 {
+	struct transport_params * params = (struct transport_params *) ptr; 
+	struct monome  mono; // = malloc(sizeof(struct monome));
 
-	//time_t t;
-	//srand((unsigned) time(&t));
+	new_monome( &mono, "8002", "8001", "8000" );
+
+	start_monome_loop( &mono );
+}
+
+
+struct monome * new_monome (
+	struct monome * mono, char * monome_port, char * transport_port, char *
+	bridge_port
+) {
+
+	time_t t;
+	srand((unsigned) time(&t));
 
 	mono->run = 1;
-	//mono->show = 1;
+	mono->show = 1;
 
 	mono->bpm_mask[0] = 128 + 64;
 	mono->bpm_mask[1] = 128 + 64;
@@ -85,179 +78,103 @@ new_monome( struct monome * mono, char * monome_port, char * transport_port,
 	lo_server_add_method(mono->monome_osc_server, "/transport/monome/grid/key",
 			"iii", press_handler, mono);
 
-	//lo_server_add_method(mono->monome_osc_server, NULL,NULL, monome_generic_handler,
-			//mono);
+	//lo_server_add_method(mono->monome_osc_server, NULL,NULL,
+	//monome_generic_handler, mono);
 
-	//return mono;
 }
 
 
-void * start_monome_loop(struct monome * mono)
+void * start_monome_loop( struct monome * mono )
 {
 	while( mono->run ){
 		lo_server_recv_noblock(mono->monome_osc_server, 50);
 	}
 }
 
-void led_up(struct monome * mono)
+//
+// Led and Appearance
+//
+
+void led_up( struct monome * mono )
 {
-	lo_send(mono->bridge_address, "/transport/grid/led/map", "iiiiiiiiii", 0, 0,
-	//lo_send(lo_address_new(NULL, "8000"), "/transport/grid/led/map", "iiiiiiiiii", 0, 0,
-			LED_MASK_UP);
+	if( mono->show )
+		lo_send(mono->bridge_address, "/transport/grid/led/map", "iiiiiiiiii", 
+				0, 0, LED_MASK_UP);
 }
 
-void led_down(struct monome * mono)
+void led_down( struct monome * mono )
 {
-	lo_send(mono->bridge_address, "/transport/grid/led/map", "iiiiiiiiii", 0, 0,
-	//lo_send(lo_address_new(NULL, "8000"), "/transport/grid/led/map", "iiiiiiiiii", 0, 0,
-			LED_MASK_DOWN);
+	if( mono->show )
+		lo_send(mono->bridge_address, "/transport/grid/led/map", "iiiiiiiiii", 
+				0, 0, LED_MASK_DOWN);
 }
 
-void led_stop(struct monome * mono)
+void led_stop( struct monome * mono )
 {
-	lo_send(mono->bridge_address, "/transport/grid/led/map", "iiiiiiiiii", 0, 0,
-	//lo_send(lo_address_new(NULL, "8000"), "/transport/grid/led/map", "iiiiiiiiii", 0, 0,
-			LED_MASK_STOP);
+	if( mono->show )
+		lo_send(mono->bridge_address, "/transport/grid/led/map", "iiiiiiiiii", 
+				0, 0, LED_MASK_STOP);
 }
 
-void led_clear(struct monome * mono)
+void led_clear( struct monome * mono )
 {
-	lo_send(mono->bridge_address, "/transport/grid/led/map", "iiiiiiiiii", 0, 0,
-	//lo_send(lo_address_new(NULL, "8000"), "/transport/grid/led/map", "iiiiiiiiii", 0, 0,
-			LED_MASK_CLEAR);
+	if( mono->show )
+		lo_send(mono->bridge_address, "/transport/grid/led/map", "iiiiiiiiii", 
+				0, 0, LED_MASK_CLEAR);
 }
 
-void led_bpm(struct monome * mono)
+void led_bpm( struct monome * mono )
 {
-	lo_send(mono->bridge_address, "/transport/grid/led/map", "iiiiiiiiii", 8, 0,
-	//lo_send(lo_address_new(NULL, "8000"), "/transport/grid/led/map", "iiiiiiiiii", 8, 0,
-		mono->bpm_mask[0], mono->bpm_mask[1],
-		mono->bpm_mask[2], mono->bpm_mask[3],
-		mono->bpm_mask[4], mono->bpm_mask[5],
-		mono->bpm_mask[6], mono->bpm_mask[7]);
+	if( mono->show )
+		//puts("led bpm");
+		//puts(mono->);
+		//puts(lo_address_get_port(mono->bridge_address));
+
+		lo_send(mono->bridge_address, "/transport/grid/led/map", "iiiiiiiiii", 
+				8, 0, 
+				mono->bpm_mask[0], mono->bpm_mask[1], 
+				mono->bpm_mask[2], mono->bpm_mask[3], 
+				mono->bpm_mask[4], mono->bpm_mask[5],
+				mono->bpm_mask[6], mono->bpm_mask[7]
+		);
 }
-
-
-
-int monome_generic_handler(const char *path, const char *types, lo_arg ** argv,
-		                    int argc, void *data, void *user_data)
-{
-//	int i;
-
-//	printf("path: <%s>\n", path);
-//	for (i = 0; i < argc; i++) {
-//		printf("arg %d '%c' ", i, types[i]);
-//		lo_arg_pp((lo_type)types[i], argv[i]);
-//		printf("\n");
-//	}
-//	printf("\n");
-//	fflush(stdout);
-	return 1;
-}
-
 
 void set_bpm_mask(struct monome * mono, float bpm)
 {
-	mono->bpm_mask[0] = 128 + 64;
-	mono->bpm_mask[1] = 128 + 64;
-	mono->bpm_mask[2] = 0; mono->bpm_mask[3] = 0;
-	mono->bpm_mask[4] = 0; mono->bpm_mask[5] = 0;
-	mono->bpm_mask[6] = 0; mono->bpm_mask[7] = 0;
-
-	int i, row, r;
-	int bpm_ten = (int) bpm / 10;
-	int bpm_one = ((int) bpm % 10) / 2;
-
-	for(i = 4; i < bpm_one + 4; i++){
-		mono->bpm_mask[i] += 128;
-	}
-
-	i = 0; row = 0;
-	while( i < bpm_ten ){
-		r = rand() % 7;
-		r = pow(2, r);
-		if( (r & mono->bpm_mask[row]) == 0 ){
-			mono->bpm_mask[row] |= r;
-			i++;
-		}
-
-		row = (row + 1) % 8;
-	}
-}
-
-int monome_quit_handler(const char *path, const char *types, lo_arg ** argv,
-		                    int argc, void *data, void *user_data)
-{
-	struct monome * mono = (struct monome *) user_data;
-	mono->run = 0;
-	led_clear(mono);
-	return 0;
-}
-
-int monome_stop_handler(const char *path, const char *types, lo_arg ** argv,
-		                    int argc, void *data, void *user_data)
-{
-	struct monome * mono = (struct monome *) user_data;
-	led_stop(mono);
-	return 0;
-}
-
-void show( struct monome * mono)
-{
-	//mono->show = 1;
-
-	led_stop( mono );
-	led_bpm( mono );
-}
-
-	
-int show_handler(const char *path, const char *types, lo_arg ** argv,
-		                    int argc, void *data, void *user_data)
-{
-	struct monome * mono = (struct monome *) user_data;
-	show( mono );
-
-	return 0;
-}
-
-int hide_handler(const char *path, const char *types, lo_arg ** argv,
-		                    int argc, void *data, void *user_data)
-{
-	struct monome * mono = (struct monome *) user_data;
-	//mono->show = 0;
-	return 0;
-}
-
-int set_monome_bpm_handler(const char *path, const char *types, lo_arg ** argv,
-		                    int argc, void *data, void *user_data)
-{
-	struct monome * mono = (struct monome *) user_data;
-
-
-	float bpm = argv[0]->f;
 	if( (bpm > 19) && (bpm < 401) ){
-		set_bpm_mask(mono, bpm);
-		//if( mono->show )
-			led_bpm( mono );
+		mono->bpm_mask[0] = 128 + 64;
+		mono->bpm_mask[1] = 128 + 64;
+		mono->bpm_mask[2] = 0; mono->bpm_mask[3] = 0;
+		mono->bpm_mask[4] = 0; mono->bpm_mask[5] = 0;
+		mono->bpm_mask[6] = 0; mono->bpm_mask[7] = 0;
+	
+		int i, row, r;
+		int bpm_ten = (int) bpm / 10;
+		int bpm_one = ((int) bpm % 10) / 2;
+	
+		for(i = 4; i < bpm_one + 4; i++){
+			mono->bpm_mask[i] += 128;
+		}
+	
+		i = 0; row = 0;
+		while( i < bpm_ten ){
+			r = rand() % 7;
+			r = pow(2, r);
+			if( (r & mono->bpm_mask[row]) == 0 ){
+				mono->bpm_mask[row] |= r;
+				i++;
+			}
+	
+			row = (row + 1) % 8;
+		}
+	
+		led_bpm( mono );
 	}
-
-	return 0;
 }
 
-	int tick_handler(const char *path, const char *types, lo_arg ** argv,
-		                    int argc, void *data, void *user_data)
+
+void control_press( struct monome * mono, int x, int y )
 {
-	struct monome * mono = (struct monome *) user_data;
-	if(argv[0]->i == 0)
-		led_down(mono);
-	else if(argv[0]->i == 72)
-		led_up(mono);
-
-	return 0;
-}
-
-
-void control_press(struct monome * mono, int x, int y){
 	switch( y ){
 
 		case 0:
@@ -310,22 +227,102 @@ void bpm_press( struct monome * mono, int x, int y ){
 	//send hide message to the bridge! /transport/hide
 }
 
-int press_handler(const char *path, const char *types, lo_arg ** argv,
-		                    int argc, void *data, void *user_data)
-{
+
+//
+// OSC Handlers
+//
+
+int monome_quit_handler (
+	const char *path, const char *types, lo_arg ** argv, int argc, void *data,
+	void *user_data
+) {
+	struct monome * mono = (struct monome *) user_data;
+	mono->run = 0;
+	led_clear(mono);
+	return 0;
+}
+
+int monome_stop_handler (
+	const char *path, const char *types, lo_arg ** argv, int argc, void *data,
+	void *user_data
+) {
+	struct monome * mono = (struct monome *) user_data;
+
+	led_stop(mono);
+
+	return 0;
+}
+
+	
+int show_handler (
+	const char *path, const char *types, lo_arg ** argv, int argc, void *data,
+	void *user_data
+) {
+	struct monome * mono = (struct monome *) user_data;
+
+	mono->show = 1;
+	mono->press_count = 0;
+
+	led_stop( mono );
+	led_bpm( mono );
+
+	return 0;
+}
+
+int hide_handler (
+	const char *path, const char *types, lo_arg ** argv, int argc, void *data,
+	void *user_data
+) {
+	struct monome * mono = (struct monome *) user_data;
+
+	mono->show = 0;
+	mono->press_count = 0;
+
+	return 0;
+}
+
+int set_monome_bpm_handler (
+	const char *path, const char *types, lo_arg ** argv, int argc, void *data,
+	void *user_data
+) {
+	struct monome * mono = (struct monome *) user_data;
+
+	set_bpm_mask( mono, argv[0]->f );
+
+	return 0;
+}
+
+int tick_handler (
+	const char *path, const char *types, lo_arg ** argv, int argc, void *data,
+	void *user_data
+) {
+	struct monome * mono = (struct monome *) user_data;
+
+	if(argv[0]->i == 0)
+		led_down(mono);
+	else if(argv[0]->i == 72)
+		led_up(mono);
+
+	return 0;
+}
+
+
+int press_handler (
+	const char *path, const char *types, lo_arg ** argv, int argc, void *data,
+	void *user_data
+) {
 	struct monome * mono = (struct monome *) user_data;
 	int x = argv[0]->i;
 	int y = argv[1]->i;
 	int press = argv[2]->i;
+	//printf("%i, %i, %i \n", x,y,press);
 
 	if( press ){
-		//if( mono->press_count == 1 ){
 		if( x < 8 )
 			control_press( mono, x, y );
 			
 		else
 			bpm_press( mono, x, y );
-		//}
 	}
 
 	else{
@@ -336,6 +333,26 @@ int press_handler(const char *path, const char *types, lo_arg ** argv,
 			mono->press_count = 0;
 	}
 
+	//printf("press count:%i\n", mono->press_count);
 	return 0;
 }
 
+int monome_generic_handler (
+	const char *path, const char *types, lo_arg ** argv, int argc, void *data,
+	void *user_data ) 
+{
+	struct monome * mono = (struct monome *) user_data;
+	lo_send(mono->transport_address, "/monome_generic", "s", path);
+	lo_send(mono->transport_address, "/monome_generic", "s", types);
+//	int i;
+
+//	printf("path: <%s>\n", path);
+//	for (i = 0; i < argc; i++) {
+//		printf("arg %d '%c' ", i, types[i]);
+//		lo_arg_pp((lo_type)types[i], argv[i]);
+//		printf("\n");
+//	}
+//	printf("\n");
+//	fflush(stdout);
+	return 1;
+}
