@@ -51,3 +51,9 @@ int monome_stop_handler(const char * path, const char * types, lo_arg ** argv,
 int monome_generic_handler(const char * path, const char * types, lo_arg **
 		argv, int argc, void * data, void * user_data );
 
+
+void led_up( struct monome * mono );
+void led_down( struct monome * mono );
+void led_stop( struct monome * mono );
+void led_clear( struct monome * mono );
+void led_bpm( struct monome * mono );

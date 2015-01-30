@@ -1,3 +1,14 @@
+#include <sched.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+#include <time.h>
+#include <unistd.h>
+#include <math.h>
+
+#include <lo/lo.h>
+ 
+
 // Monome can send the following
 // - start
 // - stop
@@ -11,44 +22,45 @@
 
 void *start_monome( void *ptr )
 {
-	struct transport_params * params = (struct transport_params *) ptr; 
-	struct monome  mono; // = malloc(sizeof(struct monome));
+	//struct transport_params * params = (struct transport_params *) ptr; 
+	struct monome mono; // = malloc(sizeof(struct monome));
 
 	new_monome( &mono, "8002", "8001", "8000" );
 
 	start_monome_loop( &mono );
 }
 
+void error___( int num, const char *msg, const char *path )
+{
+	//printf("liblo server error");
+	//fflush(stdout);
+}
 
 struct monome * new_monome (
 	struct monome * mono, char * monome_port, char * transport_port, char *
 	bridge_port
 ) {
-
 	time_t t;
 	srand((unsigned) time(&t));
 
 	mono->run = 1;
-	mono->show = 1;
-
-	mono->bpm_mask[0] = 128 + 64;
-	mono->bpm_mask[1] = 128 + 64;
-	mono->bpm_mask[2] = 0;
-	mono->bpm_mask[3] = 0;
-	mono->bpm_mask[4] = 0;
-	mono->bpm_mask[5] = 0;
-	mono->bpm_mask[6] = 0;
-	mono->bpm_mask[7] = 0;
-
+	mono->show = 0;
 	mono->press_count = 0;
 
-	mono->monome_osc_server = lo_server_new( monome_port, error );
+
+	mono->bpm_mask[0] = 128 + 64; mono->bpm_mask[1] = 128 + 64;
+	mono->bpm_mask[2] = 0; mono->bpm_mask[3] = 0; mono->bpm_mask[4] = 0;
+	mono->bpm_mask[5] = 0; mono->bpm_mask[6] = 0; mono->bpm_mask[7] = 0;
+
+
+	mono->monome_osc_server = lo_server_new( monome_port, error___ );
 	if( !(mono->monome_osc_server) ){
-		//return NULL;
 	}
+
 
 	mono->bridge_address = lo_address_new("localhost", bridge_port);
 	mono->transport_address = lo_address_new("localhost", transport_port);
+
 
 	lo_send(mono->transport_address, "/transport/add_tick_client", "ss",
 			"/transport/monome", monome_port);
@@ -198,23 +210,21 @@ void control_press( struct monome * mono, int x, int y )
 		case 6:
 		case 7:
 			switch( x ){
+				int i;
 				case 1:
-					lo_send(mono->transport_address, "/transport/dec_bpm", NULL);
-					lo_send(mono->transport_address, "/transport/dec_bpm", NULL);
-					lo_send(mono->transport_address, "/transport/dec_bpm", NULL);
+					lo_send(mono->transport_address, "/transport/dec_bpm", "i", 3);
 					break;
 				case 2:
-					lo_send(mono->transport_address, "/transport/dec_bpm", NULL);
-					lo_send(mono->transport_address, "/transport/dec_bpm", NULL);
+					//lo_send(mono->transport_address, "/transport/dec_bpm", NULL);
+					lo_send(mono->transport_address, "/transport/dec_bpm", "i", 2);
 					break;
 				case 5:
-					lo_send(mono->transport_address, "/transport/inc_bpm", NULL);
-					lo_send(mono->transport_address, "/transport/inc_bpm", NULL);
+					//lo_send(mono->transport_address, "/transport/inc_bpm", NULL);
+					lo_send(mono->transport_address, "/transport/inc_bpm", "i", 2);
 					break;
 				case 6:
-					lo_send(mono->transport_address, "/transport/inc_bpm", NULL);
-					lo_send(mono->transport_address, "/transport/inc_bpm", NULL);
-					lo_send(mono->transport_address, "/transport/inc_bpm", NULL);
+					i = 3;
+					lo_send(mono->transport_address, "/transport/inc_bpm", "i", i);
 					break;
 			}
 			break;
@@ -356,3 +366,6 @@ int monome_generic_handler (
 //	fflush(stdout);
 	return 1;
 }
+
+
+

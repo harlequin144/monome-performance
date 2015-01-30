@@ -54,7 +54,7 @@ int main( void )
 		puts("error making monome thread");
 		
 
-	send_bpm_msgs( &trans );
+	//send_bpm_msgs( &trans );
 	print_client_list( &(trans.tick_client_list ));
 
 
@@ -99,11 +99,12 @@ void new_transport (
 	struct transport * trans, struct transport_params * params
 ) {
 	trans->run = 1;
-	trans->on = 1;
+	trans->on = 0;
 	trans->tick = 0;
 	trans->tick_period = bpm_to_period(120);
 
 	trans->tick_client_list = NULL;
+	trans->bpm_client_list = NULL;
 
 	if( clock_gettime(CLOCK_MONOTONIC, &(trans->last_tick_time)) != 0 )
 		puts("failed to initialize the last tick time in new_transport");
@@ -153,9 +154,9 @@ void new_transport (
 			
 	lo_server_add_method(trans->osc_server, "/transport/set_bpm", "f",
 			set_bpm_handler, trans);
-	lo_server_add_method(trans->osc_server, "/transport/inc_bpm", NULL,
+	lo_server_add_method(trans->osc_server, "/transport/inc_bpm", "i",
 			inc_bpm_handler, trans);
-	lo_server_add_method(trans->osc_server, "/transport/dec_bpm", NULL,
+	lo_server_add_method(trans->osc_server, "/transport/dec_bpm", "i",
 			dec_bpm_handler, trans);
 
 	lo_server_add_method(trans->osc_server, "/transport/add_bpm_client",
@@ -165,11 +166,11 @@ void new_transport (
 
 
 	lo_server_add_method(trans->osc_server, "/transport/grid/key", "iii",
-			monome_press_handler, trans);
+			forward_press_handler, trans);
 	lo_server_add_method(trans->osc_server, "/transport/hide", NULL,
-			hide_handler, trans);
+			forward_hide_handler, trans);
 	lo_server_add_method(trans->osc_server, "/transport/show", NULL,
-			show_handler, trans);
+			forward_show_handler, trans);
 			
 
 	lo_server_add_method(trans->osc_server,NULL, NULL, generic_handler, trans);
@@ -187,7 +188,7 @@ void parse_config( struct transport_params * params )
 	strcpy(params->monome_port, "8002");
 	strcpy(params->bridge_port, "8000");
 	params->tick_client_list = NULL;
-	//params.bpm_client_list = NULL;
+	params->bpm_client_list = NULL;
 	
 	struct lcfg *c = lcfg_new("/home/dylan/.config/transport/transport.cfg");
 
@@ -341,11 +342,12 @@ void add_tick_client( struct transport * trans, char * port, char * prefix )
 	add_client( &(trans->tick_client_list), port, prefix);
 }
 
-//void 
-//add_bpm_client(struct transport * trans, char * port, char * prefix)
-//{
-	//add_client( &(trans->bpm_client_list), port, prefix);
-//}
+void 
+add_bpm_client(struct transport * trans, char * port, char * prefix)
+{
+	add_client( &(trans->bpm_client_list), port, prefix );
+	send_bpm_msgs( trans );
+}
 
 void add_client( 
 	struct client_list_node ** tracer, char * port, char * prefix 
@@ -454,7 +456,7 @@ int inc_bpm_handler (
 	void *user_data )
 {
 	struct transport * trans = (struct transport *) user_data;
-	set_bpm(trans, period_to_bpm(trans->tick_period) + 1);
+	set_bpm(trans, (period_to_bpm(trans->tick_period) + ((double) argv[0]->i)));
 }
 
 int dec_bpm_handler (
@@ -462,7 +464,7 @@ int dec_bpm_handler (
 	void *user_data ) 
 {
 	struct transport * trans = (struct transport *) user_data;
-	set_bpm(trans, period_to_bpm(trans->tick_period) - 1);
+	set_bpm(trans, period_to_bpm(trans->tick_period) - ((double) argv[0]->i));
 }
 
 int add_bpm_client_handler (
@@ -470,7 +472,7 @@ int add_bpm_client_handler (
 	void *user_data ) 
 {
 	struct transport * trans = (struct transport *) user_data;
-	//add_bpm_client( trans, &(argv[1]->s), &(argv[0]->s));
+	add_bpm_client( trans, &(argv[1]->s), &(argv[0]->s));
 }
 
 int add_tick_client_handler (
@@ -486,7 +488,7 @@ int add_tick_client_handler (
 }
 
 
-int monome_press_handler (
+int forward_press_handler (
 	const char *path, const char *types, lo_arg ** argv, int argc, void *data,
 	void *user_data
 ) {
@@ -496,7 +498,7 @@ int monome_press_handler (
 			argv[0]->i, argv[1]->i, argv[2]->i);
 }
 
-int monome_show_handler (
+int forward_show_handler (
 	const char *path, const char *types, lo_arg ** argv, int argc, void *data,
 	void *user_data
 ) {
@@ -504,7 +506,7 @@ int monome_show_handler (
 	lo_send(trans->monome_address, "/transport/monome/show", NULL);
 }
 
-int monome_hide_handler (
+int forward_hide_handler (
 	const char *path, const char *types, lo_arg ** argv, int argc, void *data,
 	void *user_data
 ) {

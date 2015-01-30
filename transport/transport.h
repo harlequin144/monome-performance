@@ -31,7 +31,7 @@ struct transport
 	lo_address monome_address;
 
 	struct client_list_node * tick_client_list;
-	//struct client_list_node * bpm_client_list;
+	struct client_list_node * bpm_client_list;
 };
 
 struct transport_params
@@ -41,7 +41,7 @@ struct transport_params
 	char bridge_port[6];
 
 	struct client_list_node * tick_client_list;
-	//struct client_list_node * bpm_client_list;
+	struct client_list_node * bpm_client_list;
 };
 
 
@@ -109,11 +109,11 @@ int add_bpm_client_handler(const char *path, const char *types, lo_arg **
 int add_tick_client_handler(const char *path, const char *types, lo_arg **
 		argv, int argc, void *data, void *user_data);
 
-int monome_press_handler(const char *path, const char *types, lo_arg **
+int forward_press_handler(const char *path, const char *types, lo_arg **
 		argv, int argc, void *data, void *user_data);
-int monome_show_handler(const char *path, const char *types, lo_arg **
+int forward_show_handler(const char *path, const char *types, lo_arg **
 		argv, int argc, void *data, void *user_data);
-int monome_hide_handler(const char *path, const char *types, lo_arg **
+int forward_hide_handler(const char *path, const char *types, lo_arg **
 		argv, int argc, void *data, void *user_data);
 
 int generic_handler(const char *path, const char *types, lo_arg ** argv,
