@@ -7,7 +7,7 @@ MIDIClient.init;
 
 //~trans = Transport(8000, 8001, 8002, 1234);
 //~trans.setBpm(120.0);
-//~trans.stop
+//~trans.stop[
 //~trans.start
 
 // transport cant keep track of all the prefixs, so it cant send the stop message properly.

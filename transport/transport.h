@@ -8,12 +8,18 @@
 #define TICKS_PER_BEAT 144 // two factors of 3 to allow for triplets. :)
 #define NANOS_PER_SEC 1000000000
 
-const struct timespec MIN_PERIOD= {.tv_sec = 0, .tv_nsec = 1040000};
-const struct timespec MAX_PERIOD= {.tv_sec = 0, .tv_nsec = 21000000};
-const struct timespec TOL = {.tv_sec = 0, .tv_nsec = 100};
-const struct timespec SLEEP_TIME = {.tv_sec = 0, .tv_nsec = 100000};
+const struct timespec MIN_PERIOD = {.tv_sec = 0, .tv_nsec = 1040000};
+const struct timespec MAX_PERIOD = {.tv_sec = 0, .tv_nsec = 21000000};
+const struct timespec MIN_BEAT_PERIOD = {.tv_sec = 0, .tv_nsec = 149760000};
+const struct timespec MAX_BEAT_PERIOD = { 6,  0};
 
-const struct sched_param SCHED_PARAM = {.sched_priority = 90};
+const struct timespec TOL = {.tv_sec = 0, .tv_nsec = 100};
+
+const struct timespec TAP_TIMES_EXPIRE = {.tv_sec = 6, .tv_nsec = 0};
+
+//const struct timespec SLEEP_TIME = {.tv_sec = 0, .tv_nsec = 100000};
+
+const struct sched_param SCHED_PARAM = {.sched_priority = 50};
 
 
 
@@ -30,8 +36,12 @@ struct transport
 	lo_server osc_server;
 	lo_address monome_address;
 
-	struct client_list_node * tick_client_list;
-	struct client_list_node * bpm_client_list;
+	struct client_list_node * tick_clients;
+	struct client_list_node * bpm_clients;
+
+	struct tap_list_node * tap_times;
+	// This list will hold the most recent tap time in the head, and then as it
+	// is updated the values are changed to the tap time periods.
 };
 
 struct transport_params
@@ -40,18 +50,22 @@ struct transport_params
 	char monome_port[6];
 	char bridge_port[6];
 
-	struct client_list_node * tick_client_list;
-	struct client_list_node * bpm_client_list;
+	struct client_list_node * tick_clients;
+	struct client_list_node * bpm_clients;
 };
 
-
- 
-struct client_list_node{
+struct client_list_node
+{
 	lo_address addr;
 	char * prefix;
 	struct client_list_node * next;
 };
 
+struct tap_list_node
+{
+	struct timespec time;
+	struct tap_list_node * next;
+};
 
 
 void new_transport(struct transport * trans, struct transport_params * params);
@@ -71,8 +85,11 @@ void quit(struct transport * trans);
 void set_loop_on(struct transport * trans);
 void set_loop_off(struct transport * trans);
 int set_bpm(struct transport * trans, double bpm);
-//int tap(struct transport * trans)
-//int clear_tap(struct transport * trans)
+void tap(struct transport * trans, struct timespec tap_time );
+void clear_tap(struct transport * trans );
+
+void print_tap_times( struct tap_list_node * node );
+
 
 
 

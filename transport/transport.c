@@ -45,9 +45,36 @@ int main( void )
 	if( sched_setscheduler(0, SCHED_RR, &SCHED_PARAM) == SCHED_RR )
 		puts("error setting the scheduler policy");
 
+	
+
+
+
+	struct timespec time1 = {.tv_sec = 0, .tv_nsec = 1000 };
+	struct timespec time2 = {.tv_sec = 1, .tv_nsec = 0 };
+
+	timespec_print(time1);
+	timespec_print(time2);
+	if( timespec_geq(time1, time2) )
+			puts("t1 geq t2");
+
+	if( timespec_leq(time1, time2) )
+			puts("t1 leq t2");
+
+	time1.tv_sec = 0;
+	time2.tv_sec = 0;
+
+
+
+
 
 	new_transport( &trans, &params );
 
+	//struct timespec time;
+
+	//clock_gettime( CLOCK_MONOTONIC, &time );
+	//tap( &trans, time );
+	//print_tap_times( trans.tap_times  );
+	//clear_tap( &trans );
 
 	pthread_t monome_thread;
 	if( pthread_create( &monome_thread, NULL, start_monome, (void*) &params) )
@@ -55,7 +82,7 @@ int main( void )
 		
 
 	//send_bpm_msgs( &trans );
-	print_client_list( &(trans.tick_client_list ));
+	//print_client_list( &(trans.tick_clients ));
 
 
 	start_transport_loop( &trans );
@@ -72,7 +99,7 @@ void start_transport_loop( struct transport * trans )
 	struct timespec elapsed_time;
 	struct timespec current_time;
 	struct timespec rem = {.tv_sec = 0, .tv_nsec = 10000};
-	//const struct timespec sleeptime = {.tv_sec = 0, .tv_nsec = 500000};
+	const struct timespec sleep_time = {.tv_sec = 0, .tv_nsec = 500000};
 
 	while( trans->run ){
 		if( trans->on ){
@@ -85,12 +112,13 @@ void start_transport_loop( struct transport * trans )
 			if( check_tick_expired(elapsed_time, trans->tick_period) ){
 				trans->last_tick_time = current_time;
 				send_tick_msgs(trans);
-				trans->tick = ((trans->tick + 1)%TICKS_PER_BEAT);
+				trans->tick = ((trans->tick + 1) % TICKS_PER_BEAT);
 			}
+			//printf("bpm: %f\n", period_to_bpm(trans->tick_period));
 		}
 
 		lo_server_recv_noblock(trans->osc_server, 0);
-		nanosleep(&SLEEP_TIME, &rem);
+		nanosleep( &sleep_time, &rem);
 	}
 }
 
@@ -103,31 +131,32 @@ void new_transport (
 	trans->tick = 0;
 	trans->tick_period = bpm_to_period(120);
 
-	trans->tick_client_list = NULL;
-	trans->bpm_client_list = NULL;
+	trans->tick_clients = NULL;
+	trans->bpm_clients = NULL;
+	trans->tap_times = NULL;
 
 	if( clock_gettime(CLOCK_MONOTONIC, &(trans->last_tick_time)) != 0 )
 		puts("failed to initialize the last tick time in new_transport");
 
 
-	while( params->tick_client_list != NULL ){
+	while( params->tick_clients != NULL ){
 		char * port = malloc(sizeof(char) *
-					(strlen(lo_address_get_port(params->tick_client_list->addr)) + 1));
-		strcpy(port, lo_address_get_port(params->tick_client_list->addr));
+					(strlen(lo_address_get_port(params->tick_clients->addr)) + 1));
+		strcpy(port, lo_address_get_port(params->tick_clients->addr));
 
-		add_tick_client( trans, port, params->tick_client_list->prefix );
+		add_tick_client( trans, port, params->tick_clients->prefix );
 
-		params->tick_client_list = params->tick_client_list->next; 
+		params->tick_clients = params->tick_clients->next; 
 	}
 
-	//while( params->tick_client_list != NULL ){
+	//while( params->tick_clients != NULL ){
 	//	char * port = malloc(sizeof(char) *
-	//				(strlen(lo_address_get_port(params->tick_client_list->addr)) + 1));
-	//	strcpy(port, lo_address_get_port(params->tick_client_list->addr));
+	//				(strlen(lo_address_get_port(params->tick_clients->addr)) + 1));
+	//	strcpy(port, lo_address_get_port(params->tick_clients->addr));
 
-	//	add_tick_client( trans, port, params->tick_client_list->prefix );
+	//	add_tick_client( trans, port, params->tick_clients->prefix );
 
-	//	params->tick_client_list = params->tick_client_list->next; 
+	//	params->tick_clients = params->tick_clients->next; 
 	//}
 
 
@@ -147,10 +176,10 @@ void new_transport (
 	lo_server_add_method(trans->osc_server, "/transport/toggle", NULL, 
 			toggle_handler, trans);
 
-	//lo_server_add_method(trans->osc_server, "/transport/tap", NULL,
-			//tap_handler, trans);
-	//lo_server_add_method(trans->osc_server, "/transport/clear_tap",
-			//clear_tap_handler, trans);
+	lo_server_add_method(trans->osc_server, "/transport/tap", NULL,
+			tap_handler, trans);
+	lo_server_add_method(trans->osc_server, "/transport/clear_tap", NULL,
+			clear_tap_handler, trans);
 			
 	lo_server_add_method(trans->osc_server, "/transport/set_bpm", "f",
 			set_bpm_handler, trans);
@@ -187,8 +216,8 @@ void parse_config( struct transport_params * params )
 	strcpy(params->transport_port, "8001");
 	strcpy(params->monome_port, "8002");
 	strcpy(params->bridge_port, "8000");
-	params->tick_client_list = NULL;
-	params->bpm_client_list = NULL;
+	params->tick_clients = NULL;
+	params->bpm_clients = NULL;
 	
 	struct lcfg *c = lcfg_new("/home/dylan/.config/transport/transport.cfg");
 
@@ -253,7 +282,7 @@ enum lcfg_status config_iterator (
 				strncpy(port, caps[0].ptr, caps[0].len);
 				strncpy(prefix, caps[1].ptr, caps[1].len);
 
-				add_client( &(params->tick_client_list), port, prefix);
+				add_client( &(params->tick_clients), port, prefix);
 			}
 			else{
 				puts("invalid data format in config file:");
@@ -325,6 +354,7 @@ void set_loop_off( struct transport * trans )
 {
 	trans->on = 0;
 	send_stop_msgs(trans);
+	clear_tap( trans );
 }
 
 int set_bpm( struct transport * trans, double bpm )
@@ -339,19 +369,18 @@ int set_bpm( struct transport * trans, double bpm )
 void add_tick_client( struct transport * trans, char * port, char * prefix )
 {
 	// validate!!!
-	add_client( &(trans->tick_client_list), port, prefix);
+	add_client( &(trans->tick_clients), port, prefix);
 }
 
-void 
-add_bpm_client(struct transport * trans, char * port, char * prefix)
+void add_bpm_client( struct transport * trans, char * port, char * prefix )
 {
-	add_client( &(trans->bpm_client_list), port, prefix );
+	add_client( &(trans->bpm_clients), port, prefix );
 	send_bpm_msgs( trans );
 }
 
 void add_client( 
-	struct client_list_node ** tracer, char * port, char * prefix 
-) {
+	struct client_list_node ** tracer, char * port, char * prefix ) 
+{
 	if( *tracer == NULL ){
 		*tracer = malloc(sizeof(struct client_list_node));
 
@@ -365,11 +394,110 @@ void add_client(
 		add_client(&(*tracer)->next, port, prefix);
 }
 
+void push_tap_time( struct tap_list_node ** node, struct timespec tap_time )
+{
+	if( (*node) == NULL ){
+		*node = malloc(sizeof(struct tap_list_node));
 
+		(*node)->next = NULL;
+		(*node)->time.tv_sec = tap_time.tv_sec; 
+		(*node)->time.tv_nsec = tap_time.tv_nsec; 
+	}
 
+	else{
+		struct tap_list_node * new = malloc(sizeof(struct tap_list_node));
+		new->time.tv_sec = tap_time.tv_sec; 
+		new->time.tv_nsec = tap_time.tv_nsec; 
+		new->next = *node;
+		*node = new;
+	}
+}
 
-//int tap(const char *path, const char *types, lo_arg ** argv,
-//int clear_tap(const char *path, const char *types, lo_arg ** argv,
+void calculate_tick_period( struct transport * trans )
+{
+	if( trans->tap_times != NULL ){
+		struct tap_list_node * node = trans->tap_times;
+		node = node->next; // ignore the head, it holds the most recent tap time
+		
+
+		if( node != NULL){
+			struct timespec sum;
+			sum.tv_sec = 0;
+			sum.tv_nsec = 0;
+			int num_taps = 0;
+			
+			while( node != NULL ){
+				sum.tv_sec += node->time.tv_sec;
+				sum.tv_nsec += node->time.tv_nsec;
+
+				num_taps = num_taps + 1;
+				node = node->next;
+			}
+
+			sum.tv_sec = sum.tv_sec / (num_taps * TICKS_PER_BEAT);
+			sum.tv_nsec = (sum.tv_nsec / (num_taps * TICKS_PER_BEAT));
+
+			if( validate_period( sum ) )
+				trans->tick_period = sum;
+			//timespec_print(trans->tick_period);
+			printf("bpm: %f\n", period_to_bpm(sum));
+		}
+	}
+}
+
+void tap( struct transport * trans, struct timespec tap_time )
+{ 
+	if( trans->tap_times != NULL ){
+		struct timespec delta = timespec_norm( trans->tap_times->time, tap_time );
+
+		if( timespec_geq( delta, TAP_TIMES_EXPIRE ) ){
+			clear_tap( trans );
+			puts("Expiration");
+			push_tap_time( &(trans->tap_times), tap_time );
+		}
+
+		else 
+		if( timespec_geq(delta, MIN_BEAT_PERIOD) && 
+				timespec_geq(MAX_BEAT_PERIOD, delta) 
+		){
+			puts("normal push");
+			trans->tap_times->time = delta;
+			push_tap_time( &(trans->tap_times), tap_time );
+		}
+		else
+			puts("not expire, not right speed");
+
+		calculate_tick_period( trans );
+	}
+
+	else{
+		push_tap_time( &(trans->tap_times), tap_time );
+		puts("initial push");
+	}
+
+	trans->tick = 0;
+	set_loop_on( trans );
+}
+
+void print_tap_times( struct tap_list_node * node )
+{
+	if( node != NULL ){
+		printf("secs: %li, nsecs %li\n", 
+				node->time.tv_sec, node->time.tv_nsec );
+		print_tap_times( node->next );
+	}
+}
+
+void clear_tap( struct transport * trans )
+{
+	if( trans->tap_times != NULL ){
+		struct tap_list_node * node = trans->tap_times;
+
+		trans->tap_times = trans->tap_times->next;
+		free( node );
+		clear_tap( trans );
+	}
+}
 
 
 //
@@ -438,10 +566,24 @@ int stop_handler (
 	return 0;
 }
 
-//int tap_handler(const char *path, const char *types, lo_arg ** argv,
-//		                    int argc, void *data, void *user_data);
-//int clear_tap_handler(const char *path, const char *types, lo_arg ** argv,
-//		                    int argc, void *data, void *user_data);
+int tap_handler(const char *path, const char *types, lo_arg ** argv,
+		                    int argc, void *data, void *user_data)
+{
+	struct transport * trans = (struct transport *) user_data;
+	struct timespec time;
+	clock_gettime( CLOCK_MONOTONIC, &time );
+
+	tap( trans, time );
+}
+
+int clear_tap_handler(const char *path, const char *types, lo_arg ** argv,
+		                    int argc, void *data, void *user_data)
+{
+	struct transport * trans = (struct transport *) user_data;
+	clear_tap( trans );
+	puts("clear");
+
+}
 
 int set_bpm_handler (
 	const char *path, const char *types, lo_arg ** argv, int argc, void *data,
@@ -514,6 +656,9 @@ int forward_hide_handler (
 	lo_send(trans->monome_address, "/transport/monome/hide", NULL);
 }
 
+
+
+
 // osc server error func
 void error( int num, const char *msg, const char *path )
 {
@@ -530,7 +675,7 @@ void error( int num, const char *msg, const char *path )
 
 void send_tick_msgs( struct transport * trans )
 {
-	struct client_list_node * iterator = trans->tick_client_list;
+	struct client_list_node * iterator = trans->tick_clients;
 	
 	while(iterator != NULL){
 		char * path = malloc(sizeof(char) * (strlen(iterator->prefix) + 6) ); 
@@ -545,7 +690,7 @@ void send_tick_msgs( struct transport * trans )
 
 void send_bpm_msgs( struct transport * trans )
 {
-	struct client_list_node * iterator = trans->tick_client_list;
+	struct client_list_node * iterator = trans->tick_clients;
 	
 	while(iterator != NULL){
 		char * path = malloc(sizeof(char) * (strlen(iterator->prefix) + 5) ); 
@@ -560,7 +705,7 @@ void send_bpm_msgs( struct transport * trans )
 
 void send_stop_msgs( struct transport * trans )
 {
-	struct client_list_node * iterator = trans->tick_client_list;
+	struct client_list_node * iterator = trans->tick_clients ;
 	
 	while(iterator != NULL){
 		char * path = malloc(sizeof(char) * (strlen(iterator->prefix) + 6) ); 

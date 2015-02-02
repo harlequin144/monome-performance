@@ -309,9 +309,9 @@ int tick_handler (
 	struct monome * mono = (struct monome *) user_data;
 
 	if(argv[0]->i == 0)
-		led_down(mono);
+		led_down( mono );
 	else if(argv[0]->i == 72)
-		led_up(mono);
+		led_up( mono );
 
 	return 0;
 }
@@ -326,6 +326,12 @@ int press_handler (
 	int y = argv[1]->i;
 	int press = argv[2]->i;
 	//printf("%i, %i, %i \n", x,y,press);
+	
+	if( !mono->show ){
+		mono->show = 1;
+		led_stop( mono );
+		led_bpm( mono );
+	}
 
 	if( press ){
 		if( x < 8 )

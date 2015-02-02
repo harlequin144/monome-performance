@@ -126,7 +126,7 @@ Transport {
 		{
 			//If the taps are old, clear em out
 			if( (tapTimes.size >= 1) &&
-				(time - tapTimes.last) > (3 * 144 * tickPeriod) )
+				(time - tapTimes.last) > (3 * 48 * tickPeriod) )
 			{ tapTimes = List[time]; }
 
 			// Just adding on to a current list.
@@ -144,7 +144,7 @@ Transport {
 				});
 
 				// Average and scale
-				newPeriod = ((newPeriod / (tapTimes.size-1))/144);
+				newPeriod = ((newPeriod / (tapTimes.size-1))/48);
 				this.setPeriod(newPeriod);
 
 			};
@@ -186,11 +186,11 @@ Transport {
 	 * Conveinence Methods
 	 */
 
-	getBpm { ^( (1/(tickPeriod*(2**(-1*factor))))*(60/144) ) }
+	getBpm { ^( (1/(tickPeriod*(2**(-1*factor))))*(60/48) ) }
 
 	setBpm { |bpm|
 		if((bpm >= 10) && (bpm <= 600))
-		{ tickPeriod = (1 / ((bpm * 144)/60)) };
+		{ tickPeriod = (1 / ((bpm * 48)/60)) };
 
 		this.setRightMask;
 	}
@@ -250,7 +250,7 @@ Transport {
 						bridge.sendMsg(lpath+/+'map',0,0,
 							63,56,42,56,51,51,12,12);
 					}
-					{tick == 72}{
+					{tick == 24}{
 						bridge.sendMsg(lpath+/+'map', 0,0,
 							63,7,21,7,51,51,12,12);
 					};
@@ -262,7 +262,7 @@ Transport {
 				);
 
 
-				tick = (tick+1)%144; //tick.postln;
+				tick = (tick+1)%48; //tick.postln;
 				// The execution of this function marks the begining of the
 				// tick that tick has just been set to.
 				// Delay factor update until down beat

@@ -27,16 +27,34 @@ void timespec_print(struct timespec time)
 
 int timespec_geq(struct timespec time1, struct timespec time2)
 {
-	if( (time1.tv_sec >= time2.tv_sec) && (time1.tv_nsec >= time2.tv_nsec) )
+	if( difftime(time1.tv_sec,time2.tv_sec) > 0 ){
 		return 1;
+	}
+	
+	else if( 
+		//( abs(difftime(time1.tv_sec,time2.tv_sec)) < 0.0000000001 ) &&	
+		( time1.tv_sec == time2.tv_sec) && 
+		( time1.tv_nsec >= time2.tv_nsec ) 
+	)
+		return 1;
+	
+
 	else
 		return 0;
 }
 
 int timespec_leq(struct timespec time1, struct timespec time2)
 {
-	if( (time1.tv_sec <= time2.tv_sec) && (time1.tv_nsec <= time2.tv_nsec) )
+	if( difftime(time1.tv_sec,time2.tv_sec) < 0 )
 		return 1;
+	
+	else if( 
+		//( abs(difftime(time1.tv_sec,time2.tv_sec)) < 0.0000000001 ) &&	
+		( time1.tv_sec == time2.tv_sec) && 
+		( time1.tv_nsec <= time2.tv_nsec ) 
+	)
+		return 1;
+
 	else
 		return 0;
 }
