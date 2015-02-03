@@ -8,18 +8,21 @@
 #define TICKS_PER_BEAT 144 // two factors of 3 to allow for triplets. :)
 #define NANOS_PER_SEC 1000000000
 
+
+const struct sched_param SCHED_PARAM = {.sched_priority = 50};
+
 const struct timespec MIN_PERIOD = {.tv_sec = 0, .tv_nsec = 1040000};
 const struct timespec MAX_PERIOD = {.tv_sec = 0, .tv_nsec = 21000000};
-const struct timespec MIN_BEAT_PERIOD = {.tv_sec = 0, .tv_nsec = 149760000};
-const struct timespec MAX_BEAT_PERIOD = { 6,  0};
 
 const struct timespec TOL = {.tv_sec = 0, .tv_nsec = 100};
-
 const struct timespec TAP_TIMES_EXPIRE = {.tv_sec = 6, .tv_nsec = 0};
 
 //const struct timespec SLEEP_TIME = {.tv_sec = 0, .tv_nsec = 100000};
 
-const struct sched_param SCHED_PARAM = {.sched_priority = 50};
+
+
+
+
 
 
 
@@ -68,29 +71,50 @@ struct tap_list_node
 };
 
 
-void new_transport(struct transport * trans, struct transport_params * params);
-void start_transport_loop(struct transport * trans );
 
+
+// Initialization and Startup
 void parse_config(struct transport_params * params);
 enum lcfg_status config_iterator(
 		const char * key, void * data, size_t len, void * user_data);
 
-void print_client_list(struct client_list_node ** trans);
-void add_tick_client(struct transport * trans, char * port, char * prefix);
-void add_bpm_client(struct transport * trans, char * port, char * prefix);
-void add_client(struct client_list_node ** head, char * port, char * prefix);
+void 	new_transport(
+		struct transport * trans, struct transport_params * params);
+void 	start_transport_loop(struct transport * trans );
+int 	check_tick_expired(struct timespec elapsed, struct timespec period);
 
-// The basic functions of the transport
-void quit(struct transport * trans);
-void set_loop_on(struct transport * trans);
-void set_loop_off(struct transport * trans);
-int set_bpm(struct transport * trans, double bpm);
-void tap(struct transport * trans, struct timespec tap_time );
-void clear_tap(struct transport * trans );
-
-void print_tap_times( struct tap_list_node * node );
+void 	add_tick_client_param( struct transport_params * trans, char * port, 
+		char * prefix );
+void 	add_bpm_client_param( struct transport_params * trans, char * port, 
+		char * prefix );
 
 
+// Primary Transport Methods
+void 	quit( struct transport * trans );
+void 	set_loop_on( struct transport * trans );
+void 	set_loop_off( struct transport * trans );
+void 	set_tick_period( struct transport * trans, struct timespec period );
+//void 	add_client( struct client_list_node ** head, char * port, char* prefix );
+void 	add_tick_client( struct transport * trans, char * port, char * prefix );
+void 	add_bpm_client( struct transport * trans, char * port, char * prefix );
+void 	tap( struct transport * trans, struct timespec tap_time );
+void 	clear_tap( struct transport * trans );
+
+// Secondary Methods - based on the basic ones
+void 	set_bpm( struct transport * trans, double bpm );
+
+void 	print_tap_times( struct tap_list_node * node );
+void  print_client_list( struct client_list_node ** trans);
+void 	print_timespec( struct timespec time);
+
+
+// Time Functions
+int timespec_geq(struct timespec time1, struct timespec time2);
+int timespec_leq(struct timespec time1, struct timespec time2);
+struct timespec timespec_norm(struct timespec time1, struct timespec time2);
+
+double period_to_bpm(struct timespec period);
+struct timespec bpm_to_period(double bpm);
 
 
 //

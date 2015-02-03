@@ -13,7 +13,7 @@
 #include "slre.h"
 #include "slre.c"
 
-#include "time.c"
+//#include "time.c"
 #include "transport.h"
 #include "monome.h"
 #include "monome.c"
@@ -43,47 +43,17 @@ int main( void )
 
 
 	if( sched_setscheduler(0, SCHED_RR, &SCHED_PARAM) == SCHED_RR )
-		puts("error setting the scheduler policy");
-
+		puts("error setting the scheduler policy"); 
 	
-
-
-
-	struct timespec time1 = {.tv_sec = 0, .tv_nsec = 1000 };
-	struct timespec time2 = {.tv_sec = 1, .tv_nsec = 0 };
-
-	timespec_print(time1);
-	timespec_print(time2);
-	if( timespec_geq(time1, time2) )
-			puts("t1 geq t2");
-
-	if( timespec_leq(time1, time2) )
-			puts("t1 leq t2");
-
-	time1.tv_sec = 0;
-	time2.tv_sec = 0;
-
-
-
-
 
 	new_transport( &trans, &params );
 
-	//struct timespec time;
-
-	//clock_gettime( CLOCK_MONOTONIC, &time );
-	//tap( &trans, time );
-	//print_tap_times( trans.tap_times  );
-	//clear_tap( &trans );
+	print_client_list( &(trans.tick_clients));
 
 	pthread_t monome_thread;
 	if( pthread_create( &monome_thread, NULL, start_monome, (void*) &params) )
 		puts("error making monome thread");
 		
-
-	//send_bpm_msgs( &trans );
-	//print_client_list( &(trans.tick_clients ));
-
 
 	start_transport_loop( &trans );
 
@@ -92,6 +62,10 @@ int main( void )
 	exit(EXIT_SUCCESS);
 }
 
+
+//
+// Initialization and Startup
+//
 
 void start_transport_loop( struct transport * trans )
 {
@@ -103,13 +77,15 @@ void start_transport_loop( struct transport * trans )
 
 	while( trans->run ){
 		if( trans->on ){
-
 			return_code = clock_gettime( CLOCK_MONOTONIC, &current_time );
 			assert(return_code == 0);
 
 			elapsed_time = timespec_norm(current_time, trans->last_tick_time);
 
-			if( check_tick_expired(elapsed_time, trans->tick_period) ){
+			//if( check_tick_expired(elapsed_time, trans->tick_period) ){
+			if( timespec_geq( elapsed_time, trans->tick_period ) ||
+					timespec_leq( timespec_norm(elapsed_time, trans->tick_period), TOL ))
+			{
 				trans->last_tick_time = current_time;
 				send_tick_msgs(trans);
 				trans->tick = ((trans->tick + 1) % TICKS_PER_BEAT);
@@ -122,10 +98,29 @@ void start_transport_loop( struct transport * trans )
 	}
 }
 
+//int check_tick_expired(struct timespec elapsed, struct timespec period)
+//{
+//	if( timespec_geq(elapsed, period) ){
+//		//puts("late");
+//		return 1; 
+//	}
+//
+//	else{
+//		struct timespec delta;
+//		delta = timespec_norm(elapsed, period);
+//		if( timespec_leq(delta, TOL) ){
+//			//puts("early");
+//			return 1; 
+//		}
+//	}
+//
+//	return 0;
+//}
+
 
 void new_transport ( 
-	struct transport * trans, struct transport_params * params
-) {
+	struct transport * trans, struct transport_params * params ) 
+{
 	trans->run = 1;
 	trans->on = 0;
 	trans->tick = 0;
@@ -149,15 +144,15 @@ void new_transport (
 		params->tick_clients = params->tick_clients->next; 
 	}
 
-	//while( params->tick_clients != NULL ){
-	//	char * port = malloc(sizeof(char) *
-	//				(strlen(lo_address_get_port(params->tick_clients->addr)) + 1));
-	//	strcpy(port, lo_address_get_port(params->tick_clients->addr));
+	while( params->bpm_clients != NULL ){
+		char * port = malloc(sizeof(char) *
+					(strlen(lo_address_get_port(params->bpm_clients->addr)) + 1));
+		strcpy(port, lo_address_get_port(params->bpm_clients->addr));
 
-	//	add_tick_client( trans, port, params->tick_clients->prefix );
+		add_bpm_client( trans, port, params->bpm_clients->prefix );
 
-	//	params->tick_clients = params->tick_clients->next; 
-	//}
+		params->bpm_clients = params->bpm_clients->next; 
+	}
 
 
 	trans->osc_server = lo_server_new(params->transport_port, error);
@@ -276,13 +271,13 @@ enum lcfg_status config_iterator (
 
 		if( slre_match("tick-clients\\.\\d", key, strlen(key)+1, NULL, 0, 0) > 0){
 			if( slre_match(regex, info, strlen(info)+1, caps, 2, 0) > 0 ){
-				//printf("Found URL: [%.*s]\n", caps[0].len, caps[0].ptr);
 				char * port = malloc(sizeof(char) * (caps[0].len+1));
 				char * prefix = malloc(sizeof(char) * (caps[1].len+1));
 				strncpy(port, caps[0].ptr, caps[0].len);
 				strncpy(prefix, caps[1].ptr, caps[1].len);
 
-				add_client( &(params->tick_clients), port, prefix);
+				//add_client( &(params->tick_clients), port, prefix);
+				add_tick_client_param( params, port, prefix);
 			}
 			else{
 				puts("invalid data format in config file:");
@@ -293,12 +288,13 @@ enum lcfg_status config_iterator (
 		else 
 		if( slre_match("bpm-clients\\.\\d", key, strlen(key)+1, NULL, 0, 0) > 0){
 			if( slre_match(regex, info, strlen(info)+1, caps, 2, 0) > 0 ){
-//				char * port = malloc(sizeof(char) * (caps[0].len+1));
-//				char * prefix = malloc(sizeof(char) * (caps[1].len+1));
-//				strncpy(port, caps[0].ptr, caps[0].len+1);
-//				strncpy(prefix, caps[1].ptr, caps[1].len+1);
-//				port[caps[0].len] = '\0';
-//				prefix[caps[1].len] = '\0';
+				char * port = malloc(sizeof(char) * (caps[0].len+1));
+				char * prefix = malloc(sizeof(char) * (caps[1].len+1));
+				strncpy(port, caps[0].ptr, caps[0].len);
+				strncpy(prefix, caps[1].ptr, caps[1].len);
+
+				//add_client( &(params->bpm_clients), port, prefix);
+				add_bpm_client_param( params, port, prefix);
 			}
 			else{
 				puts("invalid data format in config file:"); puts(key); puts(data);
@@ -314,27 +310,9 @@ enum lcfg_status config_iterator (
 }
 
 
-//
-// Client Methods
-//
-
-void print_client_list( struct client_list_node ** list )
-{
-
-	if( *list != NULL ){
-		printf("%s:", lo_address_get_port((*list)->addr));
-		printf("%s\n", (*list)->prefix);
-
-		print_client_list(&((*list)->next));
-	}
-	else{
-		puts("End of client list");
-	}
-}
-
 
 //
-// Transport Methods
+// Primary Transport Methods
 // these are the basic functions that directly touch the transport loop
 // all validation happens here.
 //
@@ -355,32 +333,27 @@ void set_loop_off( struct transport * trans )
 	trans->on = 0;
 	send_stop_msgs(trans);
 	clear_tap( trans );
+	//trans->tick = 0; ???
 }
 
-int set_bpm( struct transport * trans, double bpm )
+void set_tick_period( struct transport * trans, struct timespec period )
 {
-	struct timespec period = bpm_to_period( bpm );
-	if( validate_period(period) ){
+	if( timespec_geq(period, MAX_PERIOD) )
+		trans->tick_period = MAX_PERIOD;
+
+	else if( timespec_leq(period, MIN_PERIOD) )
+		trans->tick_period = MIN_PERIOD;
+
+	else
 		trans->tick_period = period;
-		send_bpm_msgs( trans );
-	}
-}
 
-void add_tick_client( struct transport * trans, char * port, char * prefix )
-{
-	// validate!!!
-	add_client( &(trans->tick_clients), port, prefix);
-}
-
-void add_bpm_client( struct transport * trans, char * port, char * prefix )
-{
-	add_client( &(trans->bpm_clients), port, prefix );
 	send_bpm_msgs( trans );
 }
 
 void add_client( 
 	struct client_list_node ** tracer, char * port, char * prefix ) 
 {
+	// validate!!!
 	if( *tracer == NULL ){
 		*tracer = malloc(sizeof(struct client_list_node));
 
@@ -392,6 +365,29 @@ void add_client(
 
 	else
 		add_client(&(*tracer)->next, port, prefix);
+}
+
+void add_tick_client( struct transport * trans, char * port, char * prefix )
+{
+	add_client( &(trans->tick_clients), port, prefix);
+}
+
+void add_bpm_client( struct transport * trans, char * port, char * prefix )
+{
+	add_client( &(trans->bpm_clients), port, prefix );
+	send_bpm_msgs( trans );
+}
+
+void add_tick_client_param( 
+		struct transport_params * params, char * port, char * prefix )
+{
+	add_client( &(params->tick_clients), port, prefix);
+}
+
+void add_bpm_client_param( 
+		struct transport_params * params, char * port, char * prefix )
+{
+	add_client( &(params->bpm_clients), port, prefix );
 }
 
 void push_tap_time( struct tap_list_node ** node, struct timespec tap_time )
@@ -412,6 +408,8 @@ void push_tap_time( struct tap_list_node ** node, struct timespec tap_time )
 		*node = new;
 	}
 }
+
+
 
 void calculate_tick_period( struct transport * trans )
 {
@@ -437,10 +435,8 @@ void calculate_tick_period( struct transport * trans )
 			sum.tv_sec = sum.tv_sec / (num_taps * TICKS_PER_BEAT);
 			sum.tv_nsec = (sum.tv_nsec / (num_taps * TICKS_PER_BEAT));
 
-			if( validate_period( sum ) )
-				trans->tick_period = sum;
-			//timespec_print(trans->tick_period);
-			printf("bpm: %f\n", period_to_bpm(sum));
+			printf("bpm: %f\n", period_to_bpm(trans->tick_period));
+			set_tick_period( trans, sum );
 		}
 	}
 }
@@ -457,15 +453,16 @@ void tap( struct transport * trans, struct timespec tap_time )
 		}
 
 		else 
-		if( timespec_geq(delta, MIN_BEAT_PERIOD) && 
-				timespec_geq(MAX_BEAT_PERIOD, delta) 
-		){
-			puts("normal push");
+		//if( timespec_geq(delta, MIN_BEAT_PERIOD) && 
+				//timespec_geq(MAX_BEAT_PERIOD, delta) 
+		//)
+		{
+			//puts("normal push");
 			trans->tap_times->time = delta;
 			push_tap_time( &(trans->tap_times), tap_time );
 		}
-		else
-			puts("not expire, not right speed");
+		//else
+			//puts("not expire, not right speed");
 
 		calculate_tick_period( trans );
 	}
@@ -479,14 +476,6 @@ void tap( struct transport * trans, struct timespec tap_time )
 	set_loop_on( trans );
 }
 
-void print_tap_times( struct tap_list_node * node )
-{
-	if( node != NULL ){
-		printf("secs: %li, nsecs %li\n", 
-				node->time.tv_sec, node->time.tv_nsec );
-		print_tap_times( node->next );
-	}
-}
 
 void clear_tap( struct transport * trans )
 {
@@ -497,6 +486,44 @@ void clear_tap( struct transport * trans )
 		free( node );
 		clear_tap( trans );
 	}
+}
+
+//
+// Secondary Transport Methods
+//
+
+void set_bpm( struct transport * trans, double bpm )
+{
+	set_tick_period( trans, bpm_to_period(bpm) );
+}
+
+
+void print_client_list( struct client_list_node ** list )
+{
+
+	if( *list != NULL ){
+		printf("%s:", lo_address_get_port((*list)->addr));
+		printf("%s\n", (*list)->prefix);
+
+		print_client_list(&((*list)->next));
+	}
+	else{
+		puts("End of client list");
+	}
+}
+
+void print_tap_times( struct tap_list_node * node )
+{
+	if( node != NULL ){
+		printf("secs: %li, nsecs %li\n", 
+				node->time.tv_sec, node->time.tv_nsec );
+		print_tap_times( node->next );
+	}
+}
+
+void print_timespec(struct timespec time)
+{
+	printf("\t %li \n\t %li\n", time.tv_sec, time.tv_nsec);
 }
 
 
@@ -676,44 +703,190 @@ void error( int num, const char *msg, const char *path )
 void send_tick_msgs( struct transport * trans )
 {
 	struct client_list_node * iterator = trans->tick_clients;
-	
+	char * path;
+	lo_message message = lo_message_new();
+
+	lo_message_add_int32( message, trans->tick );
+
 	while(iterator != NULL){
-		char * path = malloc(sizeof(char) * (strlen(iterator->prefix) + 6) ); 
+		path = malloc(sizeof(char) * (strlen(iterator->prefix) + 6) ); 
 		strcpy( path, iterator->prefix );
 		strcat( path, "/tick" );
 		
-		lo_send(iterator->addr, path, "i", trans->tick);
+		lo_send_message(iterator->addr, path, message);
+
 		iterator = iterator->next;
 		free(path);
 	}
+
+	lo_message_free( message );
 }
 
 void send_bpm_msgs( struct transport * trans )
 {
 	struct client_list_node * iterator = trans->tick_clients;
+	char * path;
+	lo_message message = lo_message_new();
 	
+	lo_message_add_float( message, period_to_bpm(trans->tick_period) );
+
 	while(iterator != NULL){
-		char * path = malloc(sizeof(char) * (strlen(iterator->prefix) + 5) ); 
+		path = malloc(sizeof(char) * (strlen(iterator->prefix) + 5) ); 
 		strcpy( path, iterator->prefix );
 		strcat( path, "/bpm" );
 		
-		lo_send(iterator->addr, path, "f", period_to_bpm(trans->tick_period));
+		lo_send_message(iterator->addr, path, message);
+
 		iterator = iterator->next;
 		free(path);
 	}
+
+	lo_message_free( message );
 }
 
 void send_stop_msgs( struct transport * trans )
 {
 	struct client_list_node * iterator = trans->tick_clients ;
+	char * path;
+	lo_message message = lo_message_new();
 	
+	lo_message_add_nil( message );
+
 	while(iterator != NULL){
-		char * path = malloc(sizeof(char) * (strlen(iterator->prefix) + 6) ); 
+		path = malloc(sizeof(char) * (strlen(iterator->prefix) + 6) ); 
 		strcpy( path, iterator->prefix );
 		strcat( path, "/stop" );
 		
-		lo_send(iterator->addr, path, NULL);
+		lo_send_message(iterator->addr, path, message);
+		
 		iterator = iterator->next;
 		free(path);
 	}
+
+	lo_message_free( message );
 }
+
+
+
+
+
+
+
+//
+// Time Functions
+//
+
+//struct timespec timespec_max(struct timespec time1, struct timespec time2)
+//{
+//	if( timespec_geq(time1, time2) )
+//		return time1;
+//	else 
+//		return time2;
+//}
+//
+//struct timespec timespec_min(struct timespec time1, struct timespec time2)
+//{
+//	if( timespec_leq(time1, time2) )
+//		return time1;
+//	else 
+//		return time2;
+//}
+
+int timespec_geq(struct timespec time1, struct timespec time2)
+{
+	if( difftime(time1.tv_sec,time2.tv_sec) > 0 )
+		return 1;
+	
+	else 
+	if( (time1.tv_sec == time2.tv_sec) && (time1.tv_nsec >= time2.tv_nsec) )
+		return 1;
+
+	else
+		return 0;
+}
+
+int timespec_leq(struct timespec time1, struct timespec time2)
+{
+	if( difftime(time1.tv_sec,time2.tv_sec) < 0 )
+		return 1;
+	
+	else if( 
+		//( abs(difftime(time1.tv_sec,time2.tv_sec)) < 0.0000000001 ) &&	
+		( time1.tv_sec == time2.tv_sec) && 
+		( time1.tv_nsec <= time2.tv_nsec ) 
+	)
+		return 1;
+
+	else
+		return 0;
+}
+
+
+
+struct timespec timespec_norm(struct timespec time1, struct timespec time2)
+{
+	struct  timespec  result;
+	result.tv_nsec = result.tv_nsec = 0 ;
+
+	if(time1.tv_sec == time2.tv_sec){
+		result.tv_sec = 0;
+		result.tv_nsec = abs((time1.tv_nsec - time2.tv_nsec));
+	}
+	else
+		
+	if(time1.tv_sec < time2.tv_sec){		
+		result.tv_nsec = NANOS_PER_SEC - time1.tv_nsec;
+		time1.tv_sec += 1;
+
+		result.tv_nsec += time2.tv_nsec;
+
+		result.tv_sec = abs(time1.tv_sec - time2.tv_sec);
+		result.tv_sec += result.tv_nsec / NANOS_PER_SEC;
+		result.tv_nsec = result.tv_nsec % NANOS_PER_SEC;
+	} 
+	else {						
+		result =  timespec_norm(time2, time1);
+	}
+	
+	return result;
+}
+
+double period_to_bpm(struct timespec period)
+{
+	double sec_per_tick = (double) period.tv_sec;
+	sec_per_tick += (((double)period.tv_nsec) /((double)  NANOS_PER_SEC));
+
+	double tick_per_sec = ((double) 1.0) / sec_per_tick;
+	double beat_per_sec = tick_per_sec / TICKS_PER_BEAT;
+	double bpm = beat_per_sec * 60;
+
+	return bpm;
+}
+	
+struct timespec bpm_to_period(double bpm)
+{
+	double sec_per_tick = ((double)1.0 / ((bpm * TICKS_PER_BEAT) / 60.0));
+	long long sec = (long long) sec_per_tick;
+	long long nsec = ((long long)((sec_per_tick - sec) * NANOS_PER_SEC));
+
+	struct timespec ret;
+	ret.tv_sec = sec;
+	ret.tv_nsec = nsec;
+
+	return ret;
+}
+
+
+//int validate_bpm(double bpm)
+//{
+//	return validate_period( bpm_to_period(bpm) );
+//}
+//
+//
+//int validate_period(struct timespec period)
+//{
+//	if( timespec_geq(period, MIN_PERIOD) && timespec_leq(period, MAX_PERIOD) )
+//		return 1;
+//	else
+//		return 0;
+//}

@@ -190,7 +190,9 @@ void control_press( struct monome * mono, int x, int y )
 	switch( y ){
 
 		case 0:
-			lo_send(mono->transport_address, "/transport/toggle", NULL);
+			mono->press_count = mono->press_count + 1;
+			if( mono->press_count == 1 )
+				lo_send(mono->transport_address, "/transport/toggle", NULL);
 			break;
 
 		case 1:
@@ -342,7 +344,7 @@ int press_handler (
 	}
 
 	else{
-		if( (y > 0) && (y < 5) )
+		if( (y >= 0) && (y < 5) )
 			mono->press_count = mono->press_count - 1;
 
 		if( mono->press_count < 0 )
