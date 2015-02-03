@@ -12,15 +12,19 @@ import liblo
 
 
 class Monome(): #(liblo.Address):
-	def __init__(self, monome_port, lClients, rClients):
+	def __init__(self, monome_port, left_client, lClients, rClients):
 
 		# Monome interface State variables
 		self.monome_port = monome_port
-		self.selected_client = ('bridge', 8000)
 		self.led_intensity = 0;
-		self.l_clients = lClients
-		self.r_clients = rClients
 
+		#self.press_count
+
+		self.selected_client = ('bridge', 8000)
+		#self.l_clients = lClients
+		#self.r_clients = rClients
+
+		self.mask = None
 		self.client_map = [0,0,0,24,24,0,0,0]
 			# The client map is kept static and is used only to save computation
 			# when lighting up the leds. This list can be used every time since
@@ -89,34 +93,16 @@ class Monome(): #(liblo.Address):
 	def switch_to_bridge(self):
 		self.client = 'bridge', 8000
 
-		self.light_map(0,0,[0,0,0,0,0,0,0,0])
-		self.light_map(8,0, self.client_map)
+		#self.light_map(0,0,[0,0,0,0,0,0,0,0])
+		#self.light_map(8,0, self.client_map)
+		self.light_map(0,0, self.mask[0])
+		self.light_map(8,0, self.mask[1])
 
 	def is_at_bridge(self):
 		if self.client == ('bridge', 8000):
 			return True
 		else:
 			return False
-
-	#def trans_up(self):
-	#	if self.trans != True:
-	#		self.trans = True
-
-	#	if self.is_at_bridge():
-	#			mask = [63,56,42,56,51,51,self.trans_factor,self.trans_factor]
-	#			self.light_map(0,0, mask)
-
-
-	#def trans_down(self):
-	#	if self.trans != True:
-	#		self.trans = True
-
-	#	if self.is_at_bridge():
-	#			mask = [63,7,21,7,51,51,self.trans_factor,self.trans_factor]
-	#			self.light_map(0,0, mask)
-
-
-
 
 	#
 	# Send to the serialosc deamon for this monome

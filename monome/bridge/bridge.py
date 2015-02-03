@@ -1,30 +1,27 @@
 #!/usr/bin/env python
 
+import sys
+sys.path.insert(0, '/home/dylan/.config/bridge')
+
+#import ConfigParser
+
+import bridge_config
 
 from Bridge import *
 
-import ConfigParser
 
-
-config = ConfigParser.ConfigParser()
-config.read('/home/dylan/.config/bridge/bridge.cfg')
-
-
-listen = int(config.get("Ports", 'listen') )
-pPort = int(config.get("Ports", 'primaryMonome') )
-sPort =  int(config.get("Ports", 'secondaryMonome') )
-
-
-lClients = [ (prfx,int(port)) if int(port)!=0 else ('',0) 
-		for prfx,port in config.items('LeftClients')]
-
-rClients = [ (prfx,int(port)) if int(port)!=0 else ('',0) 
-		for prfx,port in config.items('RightClients')]
-
+#
+# Is there led security? if you have a given client selected and another one
+# sends an led message, will it be blocked???
 
 if __name__ == "__main__":
-	bridge = Bridge(listen, primaryMonome=pPort, secondaryMonome=sPort,
-			leftClients=lClients, rightClients=rClients )
+	bridge = Bridge(
+			server_port = bridge_config.server_port, 
+			monome_ports = bridge_config.monome_ports, 
+			left_client = bridge_config.left_client, 
+			top_clients = bridge_config.top_clients, 
+			bot_clients = bridge_config.bot_clients
+		)
 
 	bridge.run()
 
