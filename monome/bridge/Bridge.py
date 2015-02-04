@@ -10,7 +10,7 @@ from Client import *
 
 class Bridge(liblo.Server):
 	def __init__(self, 
-			server_port, monome_ports, top_clients, mid_clients, bot_clients):
+			server_port, top_clients, mid_clients, bot_clients):
 
 		liblo.Server.__init__(self, server_port)
 
@@ -188,15 +188,15 @@ class Bridge(liblo.Server):
 
 		if source_monome != None:
 			if source_monome.is_at_bridge():
-				if x < 8:
-					if self.led_mask[0][y] & 2**x:
-						source_monome.switch_to_client( self.clients[(x,y)] )
+				if z == 1:
+					if x < 8:
+						if self.led_mask[0][y] & 2**x:
+							source_monome.switch_to_client( self.clients[(x,y)] )
 
-				else:
-					if self.led_mask[1][y] & 2**(x-8):
-						source_monome.switch_to_client( self.clients[(x,y)] )
+					else:
+						if self.led_mask[1][y] & 2**(x-8):
+							source_monome.switch_to_client( self.clients[(x,y)] )
 								
-
 			else:
 				source_monome.forward_press(x,y,z)
 

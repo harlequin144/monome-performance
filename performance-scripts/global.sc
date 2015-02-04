@@ -3,24 +3,17 @@ MIDIClient.init;
 
 // Servers
 //~dserv = Dserver();
-~trans = Transport(8000, 8001, 8002);
 
-//~trans = Transport(8000, 8001, 8002, 1234);
-//~trans.setBpm(120.0);
-//~trans.stop[
-//~trans.start
-
-// transport cant keep track of all the prefixs, so it cant send the stop message properly.
 
 // Synth Controllers
-~mono = Micronome(8000, 1);
+~mono = Micronome(bridgePortNum: 8000, transportPortNum: 8001, uid: 1);
 //~mono = Mono(8000, 1);
 	//MIDIOut.findPort("USB2.0-MIDI-USB2.0-MIDI MIDI 2",
 	//	"USB2.0-MIDI-USB2.0-MIDI MIDI 2").uid);
 
 //the sequencer sems to be broken.... last note is not getting killed.
 
-//Poly(8000, 7);
+//Poly(8000, 7);o
 //	MIDIOut.findPort("ZynAddSubFX-ZynAddSubFX", "ZynAddSubFX-ZynAddSubFX").uid);
 
 // Need to make the source device in these a parameter
@@ -32,7 +25,6 @@ MIDIClient.init;
 
 ~mono.show()
 ~mono.killallnotes
-Set
 
 MIDIOut.findPort("ZynAddSubFX-ZynAddSubFX", "ZynAddSubFX-ZynAddSubFX").uid
 
@@ -50,5 +42,3 @@ MIDIOut.findPort("ZynAddSubFX-ZynAddSubFX", "ZynAddSubFX-ZynAddSubFX").uid
 MIDIClient.destinations;
 
 m.control(0, 109,0)
-
-Poly()

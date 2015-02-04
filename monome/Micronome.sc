@@ -9,6 +9,7 @@ Micronome {
 	var hold = false;
 	var ctrl_press_cnt = 0;
 	//var down_tick = 0;
+	var trans_on = false;
 
 	// Notes
 	var pitchRange = 12;
@@ -38,21 +39,26 @@ Micronome {
 
 	// Osc/Midi
 	var bridge;
+	var transport;
 	var midiOut; // Keeps track of what notes are on microbrute-side
 
 
-	*new {|bridgePortNum = 8000, uid|
-		^super.new.init(bridgePortNum, uid)
+	*new {|bridgePortNum = 8000, transportPortNum = 8001, uid = 1|
+		^super.new.init(bridgePortNum, transportPortNum, uid)
 	}
 
-	init {|bridgePortNum = 8000, uid|
+	init {|bridgePortNum = 8000, transportPortNum = 8001, uid = 1|
 		bridge = NetAddr.new("localhost", bridgePortNum);
-		//monome = NetAddr.new("localhost", monomePortNum);
+		transport = NetAddr.new("localhost", transportPortNum);
+		//transport = NetAddr.new("localhost", 8001);
+
 		midiOut = MIDIOut.new(1);
 		//midiOut = MIDIOut.newByName(deviceName, portName);
 		midiOut.connect(uid);
-		
+
 		midiOut.latency = 0;
+
+		trans_on = false;
 
 		// Data Structure Initialization
 		noteStack = LinkedList[];
@@ -64,89 +70,75 @@ Micronome {
 		midiOut.sysex(Int8Array[16rB0, 16r65, 16r0, 16rB0, 16r64, 16r0,
 			16rB0, 16r06, pitchRange]);
 
+
 		// Osc Responder Registration
 		OSCdef(\micronome_press,
 			{|msg, time|
-				if(msg[3] == 1)
-				{ this.pressResponder(msg[1], msg[2], time) }
-				{ this.releaseResponder(msg[1], msg[2]) }
-			},
-			path +/+ 'grid/key');
-
-		OSCdef(\micronome_tick, 
-			{|msg| 
-				this.tickResponder(msg[1]);
 				case
-				{ msg[1] == 0 }
-				{ this.trans_light_dn; }
-				{ msg[1] == 24 }
-				{ this.trans_light_up; }
-				
-			
+				{ msg[3] == 1}{ this.pressResponder(msg[1], msg[2], time) }
+				{ msg[3] == 0}{ this.releaseResponder(msg[1], msg[2]) }
+			}, path +/+ 'grid/key');
+
+		OSCdef.newMatching(\micronome_tick,
+			{|msg|
+				this.tickResponder(msg[1]);
 			}, '/transport/tick');
+			
 
-		//OSCdef(\micronome_tick_dn, 
-		//	{|msg| 
-		//		this.tickResponder(msg[1]);
-		//		this.trans_light_dn;
-		//		down_tick = msg[1];
-		//	}, '/transport/tick/down');
-
-		//OSCdef(\micronome_tick_up, 
-		//	{|msg| 
-		//		this.tickResponder(msg[1]);
-		//		this.trans_light_up;
-		//	}, '/transport/tick/up');
+		OSCdef(\micronome_transport_stop,
+			{|msg|
+				trans_on = false;
+				bridge.sendMsg(lPath+/+"row", 0,1, 80, 171);
+				bridge.sendMsg(lPath+/+"row", 0,2, 0, 0);
+			}, '/transport/stop');
 
 		OSCdef(\micronome_hide,
 			{
 				show_cnt = show_cnt - 1;
-				"show decreased".postln;
-				show_cnt.postln;
+				//"show decreased".postln;
+				//show_cnt.postln;
 				if(show_cnt < 0){show_cnt = 0}
-			},
-			path+/+'hide');
+			}, path+/+'hide');
 
 		OSCdef(\micronome_show,
 			{
 				show_cnt = show_cnt + 1;
-				"show increased".postln;
-				show_cnt.postln;
-				this.show;},
-			path+/+'show');
+				//"show increased".postln;
+				//show_cnt.postln;
+				this.show;
+			}, path+/+'show');
 
 		this.show();
 	}
+	
 
 	/*
 	 * Press Functions
 	 */
 
 	pressResponder {|xPos, yPos, time|
-		if( xPos < 8)
-		{ show_cnt = 1 }
-		{ show_cnt = 2 };
-		//case
-		//Mod or key press
+		//if( xPos < 8)
+		show_cnt = 1;
+		//{ show_cnt = 2 };
+
 		if( (xPos >= 4) && (yPos > 0) ){
 			this.notePress(xPos, yPos)
 		}{
 			ctrl_press_cnt = ctrl_press_cnt + 1;
 			if( ctrl_press_cnt == 1){
 				case
-				{ (yPos == 0) && (xPos >= 4) }
-				{ this.setMod(xPos-3) }
+				{ yPos == 0 }{
+					case
+					{ xPos < 2 } { this.hide }
+					{ xPos < 4 } { transport.sendMsg("/transport/toggle") }
+					{ xPos >= 4 }{ this.setMod(xPos-3) }
+				}
 
-				// Exit
-				{ (yPos == 0) && (xPos < 2) }
-				{ this.hide }
-
-				//toggle trans
-				{ yPos == 0 }{ this.transToggle } // On Off
-
-				// Tap and Clear
-				{ (yPos == 1) || (yPos == 2) }
-				{ this.clearTapPress(xPos, time) }
+				{ (yPos == 1) || (yPos == 2) }{
+					if (xPos < 2)
+					{ transport.sendMsg("/transport/clear_tap") }
+					{ transport.sendMsg("/transport/tap") }
+				}
 
 				// Record and Play
 				{ (yPos == 3) || (yPos == 4) }{
@@ -154,20 +146,15 @@ Micronome {
 					{ this.recSeqButtonPress }
 					{ this.playSeqButtonPress }
 				}
-				// Pattern Select
+
 				{ yPos == 5 }{ this.selectPattern(xPos) }
-
-				// Pattern Note Play Speed
 				{ yPos == 6 }{ this.setSeqPlaySpeed(xPos) }
-
-				// Hold
 				{ yPos == 7 }{ this.holdToggle() }
 			}
 		};
-		if(yPos >= 8){
-			"got a press that is bigger than normal".postln;
-			yPos.postln;
-		}
+
+		if(yPos >= 8)
+		{ "got a press that is bigger than normal".postln; yPos.postln; }
 	}
 
 
@@ -211,7 +198,8 @@ Micronome {
 		}
 
 		{ seqState > 1 }{ //Sequencer play mode
-			if(~trans.on == false){
+			//if(~trans.on == false){
+			if(trans_on == false){
 				this.killNotesOn();
 				if(seqPos == 0)
 				{ this.noteOn(noteStack.last()) }
@@ -234,13 +222,15 @@ Micronome {
 				//noteStack.remove(note);
 				if(hold)
 				{ noteStack.add( -1*abs(note) ) }
-				{ if(~trans.on == false){ this.killNotesOn() } };
+				//{ if(~trans.on == false){ this.killNotesOn() } };
+				{ if(trans_on == false){ this.killNotesOn() } };
 			}
 
 			// More than one on stack and letting go of one playing now
 			{ note == currentlyPlayingNote }{
 				//noteStack.remove(note);
-				if( ~trans.on == false){
+				//if( ~trans.on == false){
+				if( trans_on == false){
 					this.killNotesOn();
 					this.noteOn(noteStack.last()+seq[selectedSeq][seqPos]);
 					seqPos = (seqPos + 1)%seq[selectedSeq].size;
@@ -285,18 +275,6 @@ Micronome {
 	/*
 	 * Other Functions
 	 */
-
-	clearTapPress {|xPos, time|
-		if(xPos < 2){
-			~trans.clear_tap
-		}{
-			~trans.tap(time);
-			if(~trans.on){
-				bridge.sendMsg(lPath+/+"set", 2,0,1);
-				bridge.sendMsg(lPath+/+"set", 3,0,1);
-			}
-		}
-	}
 
 	playSeqButtonPress {
 		if(seqState == 2){ // Already on, turn off
@@ -360,21 +338,6 @@ Micronome {
 		}
 	}
 
-	transToggle {
-		if( ~trans.on ){
-			~trans.stop;
-			bridge.sendMsg(lPath +/+ "set", 2,0,0);
-			bridge.sendMsg(lPath +/+ "set", 3,0,0);
-			bridge.sendMsg(lPath +/+ "row",0,1, 80,171);
-			bridge.sendMsg(lPath +/+ "row",0,2, 0, 0);
-			if(seqState == 2){ this.killNotesOn() };
-		}{
-			~trans.start;
-			bridge.sendMsg(lPath +/+ "set", 2,0,1);
-			bridge.sendMsg(lPath +/+ "set", 3,0,1);
-		}
-	}
-
 	setMod { |val| // enter the value that you want it to be changed to, 1-12
 		if((val >= 0) && (val <= 12)){
 			pitchRange = val;
@@ -405,6 +368,13 @@ Micronome {
 
 	tickResponder {|tick|
 		var speed = 12;
+
+		case
+		{ tick == 0 } { this.trans_light_dn; }
+		{ tick == 72 } { this.trans_light_up; };
+
+		trans_on = true;
+
 		case
 		{ seqPlaySpeed == 0 }{ speed = 12 }
 		{ seqPlaySpeed == 1 }{ speed = 6 }
@@ -429,15 +399,15 @@ Micronome {
 
 	trans_light_up{
 		if(show_cnt > 0){
-			bridge.sendMsg(lPath +/+ "row",0,1, 83,171);
-			bridge.sendMsg(lPath +/+ "row",0,2, 3,0);
+			bridge.sendMsg(lPath +/+ "row",0,1, 92,171);
+			bridge.sendMsg(lPath +/+ "row",0,2, 12,0);
 		}
 	}
 
 	trans_light_dn{
 		if(show_cnt > 0){
-			bridge.sendMsg(lPath +/+ "row",0,1, 92,171);
-			bridge.sendMsg(lPath +/+ "row",0,2, 12,0);
+			bridge.sendMsg(lPath +/+ "row",0,1, 83,171);
+			bridge.sendMsg(lPath +/+ "row",0,2, 3,0);
 		}
 	}
 
@@ -452,7 +422,7 @@ Micronome {
 			// Left side
 			bridge.sendMsg(lPath +/+ "map", 0,0,
 				( pitchG4.if{241}{ 1+(16*((2**pitchRange)-1)) } ) +
-				( if(~trans.on){12}{0} ),
+				( if(trans_on){12}{0} ),
 				80, 0, // Tap and clear - let tick handle update this
 				80 + (4*seqFact), // Play and Record
 				80 + (4*seqFact),
@@ -465,10 +435,6 @@ Micronome {
 				(pitchG4).if{ 2**(pitchRange-4)-1 }{0},
 				171,0,171,171,171,0,171);
 		};
-		//if(show_cnt > 1){
-			//bridge.sendMsg(lPath +/+ "map",8,8,
-				//0, 171,0,171,171,171,0,171);
-		//}
 	}
 
 	hide{

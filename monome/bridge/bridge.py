@@ -17,7 +17,6 @@ from Bridge import *
 if __name__ == "__main__":
 	bridge = Bridge(
 			server_port = bridge_config.server_port, 
-			monome_ports = bridge_config.monome_ports, 
 			top_clients = bridge_config.top_clients, 
 			mid_clients = bridge_config.mid_clients, 
 			bot_clients = bridge_config.bot_clients
