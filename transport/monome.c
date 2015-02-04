@@ -236,7 +236,17 @@ void control_press( struct monome * mono, int x, int y )
 void bpm_press( struct monome * mono, int x, int y ){
 
 	//hide button
-	//send hide message to the bridge! /transport/hide
+	if( (x == 14) && (y == 0) ||
+			(x == 14) && (y == 1) ||
+			(x == 15) && (y == 0) ||
+			(x == 15) && (y == 1) )
+	{
+		mono->show = 0;
+		mono->press_count = 0;
+
+		led_clear( mono );
+		lo_send(mono->bridge_address, "/transport/hide", NULL);
+	}
 }
 
 
@@ -289,6 +299,9 @@ int hide_handler (
 
 	mono->show = 0;
 	mono->press_count = 0;
+
+	led_clear( mono );
+	lo_send(mono->bridge_address, "/transport/hide", NULL);
 
 	return 0;
 }

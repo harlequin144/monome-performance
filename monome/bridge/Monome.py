@@ -12,43 +12,18 @@ import liblo
 
 
 class Monome(): #(liblo.Address):
-	def __init__(self, monome_port, left_client, lClients, rClients):
+	def __init__(self, monome_port): #left_client, lClients, rClients):
 
 		# Monome interface State variables
 		self.monome_port = monome_port
 		self.led_intensity = 0;
 
-		#self.press_count
+		self.selected_client = None
 
-		self.selected_client = ('bridge', 8000)
-		#self.l_clients = lClients
-		#self.r_clients = rClients
+		#self.client_map = [0,0,0,24,24,0,0,0]
 
-		self.mask = None
-		self.client_map = [0,0,0,24,24,0,0,0]
-			# The client map is kept static and is used only to save computation
-			# when lighting up the leds. This list can be used every time since
-			# the clients are meant to never be changed after starting.
 
-		# Initialization
-		for x, (lPre, lPort), (rPre, rPort) in zip(range(4), lClients, rClients):
-			if lPre != '':
-				self.client_map[2*x] = self.client_map[2*x] + 3
-			if rPre != '':
-				self.client_map[2*x] = self.client_map[2*x] + 2**6 + 2**7
-
-		liblo.send(self.monome_port, '/bridge/grid/led/intensity', 0)
-
-	#
-	# Monome Key Press Function
-	#		This baby does the main job of the program
-	#
-
-	def key_press(self, x, y, z):
-		if self.client == ('bridge', 8000):
-			self.bridge_press(x,y,z)
-		else:
-			self.forward_press(x,y,z)
+		liblo.send(self.monome_port, '/bridge/grid/led/intensity', 1)
 
 
 	#
@@ -90,16 +65,18 @@ class Monome(): #(liblo.Address):
 	# Bridge Interaction
 	#
 
-	def switch_to_bridge(self):
-		self.client = 'bridge', 8000
+	def switch_to_client(self, client):
+		self.selected_client = client
+		self.light_clear()
+		self.client_send('/show')
 
-		#self.light_map(0,0,[0,0,0,0,0,0,0,0])
-		#self.light_map(8,0, self.client_map)
-		self.light_map(0,0, self.mask[0])
-		self.light_map(8,0, self.mask[1])
+	def switch_to_bridge(self):
+		if self.selected_client != None:
+			self.client_send('/hide')
+		self.selected_client = None
 
 	def is_at_bridge(self):
-		if self.client == ('bridge', 8000):
+		if self.selected_client == None:
 			return True
 		else:
 			return False
@@ -116,10 +93,12 @@ class Monome(): #(liblo.Address):
 	#
 
 	def client_send(self, path, args):
-		liblo.send(self.client[1], '/'+self.client[0]+path, *args)
+		liblo.send(self.selected_client.port, self.selected_client.prefix + path,
+				*args)
 
 	def client_send(self, path):
-		liblo.send(self.client[1], '/'+self.client[0]+path)
+		liblo.send(self.selected_client.port , self.selected_client.prefix + path)
 		
 	def forward_press(self, x, y, z):
-		liblo.send(self.client[1], '/'+self.client[0]+'/grid/key', x, y, z)
+		liblo.send(self.selected_client.port , self.selected_client.prefix +
+				'/grid/key', x, y, z)
