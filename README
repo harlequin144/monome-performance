@@ -1,26 +1,17 @@
 
-This directory, ~/code/music, is intended to be used as a place to develope
-code for making programs that are used to compose, or perform music. It shall
-not contain code that is itself music, or files that are meant to be run in
-order to set up or do something specifically for a performance. I.e. it does
-not contain compositions or scripts that use the tools that are developed in
-this directory.  For example, this directory will contain the supercollider
-code for the transport that I commonly use with my other monome programs. This
-is a tool that I use to perform music. However, if I have another
-supercollider program that is effectively meant to be run so as to generate a
-song or a recording of a song, this would be considered a composition and will
-be stored elsewhere. 
+This directory, is intended to be used as a place to develop code for making
+programs that are used to compose, or perform music. 
 
-This directory is rather remotely located from where the bulk of my other
-music files are (~/music). This is because, the development of the tools I use
-to make music and the files that make use of those tools (or don't for that
-matter) need to be separated. This directory should not need to be known to
-any files that are located in ~/music. This will keep the division between use
-and development clean.
+performance scripts are scripts that are meant to be used during performance.
+This includes setup and changing program parameters, etc..
 
-It is true that the scripts that might make use of these programs can be said
-to be under development. I will make an exception for these, as it is intended
-that this development will be quick and simple. 
+monome contains all programs that are meant to be used with the monome (my
+primary physical controller). 
 
-The question of where is the appropriate place to store composition-programs
-remains. This will be settled later. 
+transport contains a server that broadcasts time signals to tell clients where
+the beat is in real time. 
+
+switchserialosc is a server that listens to button press info from my arcade
+button control and send signals out via osc in response. 
+
+
