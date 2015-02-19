@@ -29,21 +29,21 @@ Mono {
 			16rB0, 16r06, pitchRange]);
 
 		// Osc Responder Registration
-		OSCdef(\micronome_press,
+		OSCdef(\mono_press,
 			{|msg, time|
 				case
 				{ msg[3] == 1}{ this.pressResponder(msg[1], msg[2], time) }
 				{ msg[3] == 0}{ this.releaseResponder(msg[1], msg[2]) }
 			}, path +/+ 'grid/key');
 
-		OSCdef(\micronome_hide,
+		OSCdef(\mono_hide,
 			{
 				show_cnt = show_cnt - 1;
 				//"show decreased".postln; show_cnt.postln;
 				if(show_cnt < 0){show_cnt = 0}
 			}, path+/+'hide');
 
-		OSCdef(\micronome_show,
+		OSCdef(\mono_show,
 			{
 				show_cnt = show_cnt + 1;
 				//"show increased".postln; show_cnt.postln;
