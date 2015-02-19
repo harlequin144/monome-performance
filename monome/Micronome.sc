@@ -44,12 +44,13 @@ Micronome {
 
 
 
-	*new {|bridgePortNum = 8000, midi|
-		^super.new.init(bridgePortNum, midi)
+	*new {|bridgePortNum = 8000, transPortNum = 8001, midi|
+		^super.new.init(bridgePortNum, transPortNum, midi)
 	}
 
-	init {|bridgePortNum = 8000, midi|
+	init {|bridgePortNum = 8000, transPortNum = 8001, midi|
 		bridge = NetAddr.new("localhost", bridgePortNum);
+		transport = NetAddr.new("localhost", transPortNum);
 
 		midiOut = midi;
 
@@ -361,7 +362,7 @@ Micronome {
 
 
 	tickResponder {|tick|
-		var speed = 12;
+		var speed = 36;
 
 		case
 		{ tick == 0 } { this.trans_light_dn; }
@@ -370,10 +371,10 @@ Micronome {
 		trans_on = true;
 
 		case
-		{ seqPlaySpeed == 0 }{ speed = 12 }
-		{ seqPlaySpeed == 1 }{ speed = 6 }
-		{ seqPlaySpeed == 2 }{ speed = 3 }
-		{ seqPlaySpeed == 3 }{ speed = 8 };
+		{ seqPlaySpeed == 0 }{ speed = 36 }
+		{ seqPlaySpeed == 1 }{ speed = 18 }
+		{ seqPlaySpeed == 2 }{ speed = 9 }
+		{ seqPlaySpeed == 3 }{ speed = 9 };
 
 		if(	(seqState > 1) && (noteStack.size > 0)){ //down beat or note on
 			if(((tick/speed)%4) == 0){
