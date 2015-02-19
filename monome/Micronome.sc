@@ -6,7 +6,7 @@ Micronome {
 
 	// State
 	var show_cnt = 0;
-	var hold = false;
+	var sustain = false;
 	var ctrl_press_cnt = 0;
 	//var down_tick = 0;
 	var trans_on = false;
@@ -21,7 +21,7 @@ Micronome {
 	//   last note is released, it is replaced on the stack but as a
 	//   negative number to represent that it is not being pressd but was
 	//   the last note that was pressed.
-	var notesOn;
+
 	// This keeps track of noteons that have been sent via the midiout. In
 	// this program, note ons may only ever be sent with this function, so that
 	// we can keep perfect track of what has been sent. Note that this data
@@ -43,28 +43,24 @@ Micronome {
 	var midiOut; // Keeps track of what notes are on microbrute-side
 
 
-	*new {|bridgePortNum = 8000, transportPortNum = 8001, uid = 1|
-		^super.new.init(bridgePortNum, transportPortNum, uid)
+
+	*new {|bridgePortNum = 8000, midi|
+		^super.new.init(bridgePortNum, midi)
 	}
 
-	init {|bridgePortNum = 8000, transportPortNum = 8001, uid = 1|
+	init {|bridgePortNum = 8000, midi|
 		bridge = NetAddr.new("localhost", bridgePortNum);
-		transport = NetAddr.new("localhost", transportPortNum);
-		//transport = NetAddr.new("localhost", 8001);
 
-		midiOut = MIDIOut.new(1);
-		//midiOut = MIDIOut.newByName(deviceName, portName);
-		midiOut.connect(uid);
-
-		midiOut.latency = 0;
+		midiOut = midi;
 
 		trans_on = false;
 
 		// Data Structure Initialization
 		noteStack = LinkedList[];
-		notesOn = Set[];
+
  		seq = Array[
 			LinkedList[60],LinkedList[60],LinkedList[60],LinkedList[60] ];
+
 		midiOut.control(0,105, 127);  // Seq Play hold to off
 		midiOut.control(0, 109,0);
 		midiOut.sysex(Int8Array[16rB0, 16r65, 16r0, 16rB0, 16r64, 16r0,
@@ -83,7 +79,7 @@ Micronome {
 			{|msg|
 				this.tickResponder(msg[1]);
 			}, '/transport/tick');
-			
+
 
 		OSCdef(\micronome_transport_stop,
 			{|msg|
@@ -95,22 +91,20 @@ Micronome {
 		OSCdef(\micronome_hide,
 			{
 				show_cnt = show_cnt - 1;
-				//"show decreased".postln;
-				//show_cnt.postln;
+				//"show decreased".postln; show_cnt.postln;
 				if(show_cnt < 0){show_cnt = 0}
 			}, path+/+'hide');
 
 		OSCdef(\micronome_show,
 			{
 				show_cnt = show_cnt + 1;
-				//"show increased".postln;
-				//show_cnt.postln;
+				//"show increased".postln; show_cnt.postln;
 				this.show;
 			}, path+/+'show');
 
 		this.show();
 	}
-	
+
 
 	/*
 	 * Press Functions
@@ -149,7 +143,7 @@ Micronome {
 
 				{ yPos == 5 }{ this.selectPattern(xPos) }
 				{ yPos == 6 }{ this.setSeqPlaySpeed(xPos) }
-				{ yPos == 7 }{ this.holdToggle() }
+				{ yPos == 7 }{ this.sustainToggle() }
 			}
 		};
 
@@ -172,7 +166,7 @@ Micronome {
 
 	notePress { |xPos, yPos| //|time|
 		var note = (12*yPos) + (xPos-4);
-		if(hold && noteStack.size == 1){
+		if(sustain && noteStack.size == 1){
 			if(noteStack.last() < 0){ noteStack.pop() }
 		};
 		// This is the main purpose of this function, operations specific to
@@ -181,13 +175,13 @@ Micronome {
 
 		case
 		{ seqState == 0 }{ 	//free mode
-			this.killNotesOn();
-			this.noteOn(note);
+			midiOut.killNotesOn();
+			midiOut.noteOn(note);
 		}
 
 		{ seqState == 1 }{ // record mode
-			this.killNotesOn();
-			if(recordSilently == false){ this.noteOn(note) };
+			midiOut.killNotesOn();
+			if(recordSilently == false){ midiOut.noteOn(note) };
 			if(seqPos == 0){
 				seq[selectedSeq] = LinkedList[noteStack.last()];
 				seqPos = seqPos + 1;
@@ -198,12 +192,11 @@ Micronome {
 		}
 
 		{ seqState > 1 }{ //Sequencer play mode
-			//if(~trans.on == false){
 			if(trans_on == false){
-				this.killNotesOn();
+				midiOut.killNotesOn();
 				if(seqPos == 0)
-				{ this.noteOn(noteStack.last()) }
-				{ this.noteOn(noteStack.last() + seq[selectedSeq][seqPos]) };
+				{ midiOut.noteOn(noteStack.last()) }
+				{ midiOut.noteOn(noteStack.last() + seq[selectedSeq][seqPos]) };
 				seqPos = (seqPos + 1)%seq[selectedSeq].size;
 			}
 		}
@@ -220,19 +213,17 @@ Micronome {
 			// Letting go of the one and last note on stack
 			{ noteStack.size == 0 }{
 				//noteStack.remove(note);
-				if(hold)
+				if( sustain )
 				{ noteStack.add( -1*abs(note) ) }
-				//{ if(~trans.on == false){ this.killNotesOn() } };
-				{ if(trans_on == false){ this.killNotesOn() } };
+				{ if(trans_on == false){ midiOut.killNotesOn() } };
 			}
 
 			// More than one on stack and letting go of one playing now
 			{ note == currentlyPlayingNote }{
 				//noteStack.remove(note);
-				//if( ~trans.on == false){
 				if( trans_on == false){
-					this.killNotesOn();
-					this.noteOn(noteStack.last()+seq[selectedSeq][seqPos]);
+					midiOut.killNotesOn();
+					midiOut.noteOn(noteStack.last()+seq[selectedSeq][seqPos]);
 					seqPos = (seqPos + 1)%seq[selectedSeq].size;
 				}
 			}
@@ -247,16 +238,19 @@ Micronome {
 			// we released the one and last note on stack
 			{ noteStack.size == 0 }{
 				//noteStack.remove(note);
-				if(hold)
+				if( sustain )
 				{ noteStack.add( -1*abs(note) ) }
-				{ this.noteOff(note) };
+				{ 
+					midiOut.noteOff(note);
+					noteStack.remove(note);
+				};
 			}
 
 			// More than one on stack and letting go of one playing now
 			{ note == currentlyPlayingNote }{
-				this.noteOff(note);
-				//noteStack.remove(note);
-				this.noteOn(noteStack.last())
+				midiOut.noteOff(note);
+				noteStack.remove(note);
+				midiOut.noteOn(noteStack.last())
 			}
 
 			// More than one on stack and not letting go of playing note
@@ -281,8 +275,8 @@ Micronome {
 			seqState = 0;
 			bridge.sendMsg( lPath+/+"row",0, 3, 80, 171);
 			bridge.sendMsg( lPath+/+"row",0, 4, 80, 171);
-			this.killNotesOn();
-			if(noteStack.size > 0){ this.noteOn(abs(noteStack.last())) }
+			midiOut.killNotesOn();
+			if(noteStack.size > 0){ midiOut.noteOn(abs(noteStack.last())) }
 		}{
 			// was off or recording, turn on
 			seqState = 2;
@@ -308,8 +302,8 @@ Micronome {
 		}{
 			// Seq is off or in play mode
 			if( seqState > 1){
-				this.killNotesOn();
-				if(noteStack.size > 0){ this.noteOn(abs(noteStack.last())) };
+				midiOut.killNotesOn();
+				if(noteStack.size > 0){ midiOut.noteOn(abs(noteStack.last())) };
 			};
 
 			seqState = 1; // turn on seq in record mode
@@ -349,20 +343,20 @@ Micronome {
 		}
 	}
 
-	holdToggle {
-		if(hold == true) {
+	sustainToggle {
+		if( sustain  == true) {
 			if( noteStack.size == 1 ){
 				if(noteStack.last() < 0){ //case where there is a held note
 					noteStack.pop();
-					this.killNotesOn();
+					midiOut.killNotesOn();
 				}
 			};
 			//{ noteStack.size == 0 }
 			//{ this.killNotesOn() };
-			hold = false;
+			sustain = false;
 		}
-		{ hold = true };
-		bridge.sendMsg(lPath +/+ "row", 0,7,hold.if{12}{3}+80, 171);
+		{  sustain  = true };
+		bridge.sendMsg(lPath +/+ "row", 0,7, sustain.if{12}{3}+80, 171);
 	}
 
 
@@ -386,15 +380,15 @@ Micronome {
 				var note = if(seqPos == 0)
 					{abs(noteStack.last())}
 					{abs(noteStack.last()) + seq[selectedSeq][seqPos]};
-				this.killNotesOn();
-				this.noteOn(note);
+				midiOut.killNotesOn();
+				midiOut.noteOn(note);
 				seqPos = (seqPos + 1)%seq[selectedSeq].size;
 			};
 		};
 
 		// Kill notes off in the seq
 		if( (seqState > 1) && ((tick/speed)%4 == 3) )
-		{ this.killNotesOn() };
+		{ midiOut.killNotesOn() };
 	}
 
 	trans_light_up{
@@ -428,7 +422,7 @@ Micronome {
 				80 + (4*seqFact),
 				80 + (2** selectedSeq), // Select Seq
 				2**seqPlaySpeed,//Playback speed
-				83 + (9*hold.if{1}{0}) // Hold
+				83 + (9 * sustain.if{1}{0}) // Hold
 			);
 			// Right Side
 			bridge.sendMsg(lPath +/+ "map",8,0,
@@ -441,39 +435,10 @@ Micronome {
 		show_cnt = 0;
 		bridge.sendMsg(path+/+"hide"); //sending a request to bridge to hide
 		ctrl_press_cnt = 0;
-		if(hold == false){
-			this.killNotesOn();
+		if( sustain == false){
+			midiOut.killNotesOn();
 			{noteStack.size > 0}.while({noteStack.pop()});
 		};
 	}
 
-	/*
-	 * Note Management
-	 */
-	noteOn {|num|
-		midiOut.noteOn(0, num);
-		notesOn.add(num);
-	}
-
-	noteOff {|num|
-		midiOut.noteOff(0, num);
-		notesOn.remove(num);
-		//notesOn.postln;
-		//("sent note off: " +num).postln;
-		//noteStack.remove(num);
-	}
-
-	killNotesOn {
-		//notesOn.postln;
-		//"killing".postln;
-		notesOn.do({|note|
-			this.noteOff(note);
-			//("killing note: " + note).postln;
-		});
-		//notesOn.postln;
-	}
-
-	killallnotes {
-		(1..150).do({|note| midiOut.noteOff(0, note) })
-	}
 }

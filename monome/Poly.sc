@@ -45,6 +45,8 @@ Poly {
 		// Midi
 		midiOut = MIDIOut(2);
 		midiOut.connect(uid);
+		//midiOut = MIDIOut.findPort("ZynAddSubFX-ZynAddSubFX", "ZynAddSubFX-ZynAddSubFX").uid;
+
 		midiOut.latency = 0;
 
 		// Data Structure Initialization
@@ -58,7 +60,7 @@ Poly {
 				var xPos = msg[1]; var yPos = msg[2];
 
 				if(msg[3] == 1)
-				{ 
+				{
 					if(xPos < 4)
 					{ this.controlPress(msg[1], msg[2], time) }
 					{ this.notePress(msg[1], msg[2]) }
@@ -70,8 +72,8 @@ Poly {
 			},
 			path +/+ 'grid/key');
 
-		OSCdef(\poly_tick, 
-			{|msg| 
+		OSCdef(\poly_tick,
+			{|msg|
 				//this.tickResponder(msg[1]);
 				case
 				{ msg[1] == 0 }
@@ -102,10 +104,10 @@ Poly {
 	controlPress {|xPos, yPos, time|
 		// arameter checking
 		if( (xPos > 15) || (yPos >= 8))
-		{ 
-			"got a press that is bigger than normal".postln; 
-			yPos.postln;	
-			yPos.postln;	
+		{
+			"got a press that is bigger than normal".postln;
+			yPos.postln;
+			yPos.postln;
 		}{
 			if(show_cnt == 0)
 			{ show_cnt = 1 }
@@ -130,23 +132,23 @@ Poly {
 
 			// keyboard mode select
 			{ (yPos == 4) || (yPos == 5) }
-			{ 
+			{
 				if(iso_mode)
 				{
 					iso_mode = false;
-					press_set.do({|pair, i| 
+					press_set.do({|pair, i|
 						var note = (4*(yPos-1)) + (3*(xPos-5));
 						midiOut.noteOff(0, note);
 					});
 				}
 				{
 					iso_mode = true;
-					press_set.do({|pair, i| 
+					press_set.do({|pair, i|
 						var note = (12*pair[1]) + (pair[0]-4);
 						midiOut.noteOff(0, note);
 					});
 				};
-				press_set.do({|pair, i| 
+				press_set.do({|pair, i|
 					var note = (12*pair[1]) + (pair[0]-4);
 					midiOut.noteOff(0, note);
 				});
@@ -400,10 +402,10 @@ Poly {
 		if( show_cnt > 0){
 			if(iso_mode){
 				// Left side
-				bridge.sendMsg(lPath +/+ "map",0,0, 
+				bridge.sendMsg(lPath +/+ "map",0,0,
 					3,35 ,0,0,44, 12, 0,32);
 				// Right Side
-				bridge.sendMsg(lPath +/+ "map",8,0, 
+				bridge.sendMsg(lPath +/+ "map",8,0,
 					0,34,0,0,34,0,0,34);
 			}{
 				// Left side
@@ -420,13 +422,13 @@ Poly {
 		ctrl_press_cnt = 0;
 
 		if(iso_mode){
-			press_set.do({|pair, i| 
+			press_set.do({|pair, i|
 				var note = (4*(pair[1]-1)) + (3*(pair[0]-5)) + 36;
-				
+
 				midiOut.noteOff(0, note);
 			});
 		}{
-			press_set.do({|pair, i| 
+			press_set.do({|pair, i|
 				var note = (12*pair[1]) + (pair[0]-4);
 				midiOut.noteOff(0, note);
 			});
