@@ -17,6 +17,7 @@
 #include "transport.h"
 #include "monome.h"
 #include "monome.c"
+#include "test.c"
  
 #define GENERIC_PRINT 0
 
@@ -35,6 +36,8 @@
 
 int main( void )
 {
+	run_tests(); 
+
 	struct transport_params params;
 	struct transport trans;
 
@@ -419,24 +422,37 @@ void calculate_tick_period( struct transport * trans )
 		
 
 		if( node != NULL){
-			struct timespec sum;
-			sum.tv_sec = 0;
-			sum.tv_nsec = 0;
+			//struct timespec sum;
+			//sum.tv_sec = 0;
+			//sum.tv_nsec = 0;
+			double sum = 0.0;
 			int num_taps = 0;
 			
 			while( node != NULL ){
-				sum.tv_sec += node->time.tv_sec;
-				sum.tv_nsec += node->time.tv_nsec;
+				puts("adding time spec to sum:");
+				print_timespec( node->time );
+
+				sum += timespec_to_double(node->time);
+				//sum.tv_sec += node->time.tv_sec;
+				//sum.tv_nsec += node->time.tv_nsec;
 
 				num_taps = num_taps + 1;
 				node = node->next;
 			}
+			
+			printf("sum calculatd:%0.10f\n", sum);
+			//print_timespec( sum );
 
-			sum.tv_sec = sum.tv_sec / (num_taps * TICKS_PER_BEAT);
-			sum.tv_nsec = (sum.tv_nsec / (num_taps * TICKS_PER_BEAT));
+			// heres out problem...
+			//sum.tv_sec = sum.tv_sec / (num_taps * TICKS_PER_BEAT);
+			//sum.tv_nsec = (sum.tv_nsec / (num_taps * TICKS_PER_BEAT));
+			 
+			sum /= num_taps;
+			sum /= TICKS_PER_BEAT;
 
+			printf("num taps: %d\n", num_taps);
+			set_tick_period( trans, double_to_timespec(sum) );
 			printf("bpm: %f\n", period_to_bpm(trans->tick_period));
-			set_tick_period( trans, sum );
 		}
 	}
 }
@@ -471,6 +487,8 @@ void tap( struct transport * trans, struct timespec tap_time )
 		push_tap_time( &(trans->tap_times), tap_time );
 		puts("initial push");
 	}
+
+	print_tap_times(trans->tap_times);
 
 	trans->tick = 0;
 	set_loop_on( trans );
@@ -876,6 +894,30 @@ struct timespec bpm_to_period(double bpm)
 	return ret;
 }
 
+struct timespec double_to_timespec(double time)
+{
+	long long sec = (long long) time;
+	long long nsec = ((long long)((time - sec) * NANOS_PER_SEC));
+
+	struct timespec ret;
+	ret.tv_sec = abs(sec);
+	ret.tv_nsec = abs(nsec);
+
+	return ret;
+}
+
+double timespec_to_double(struct timespec time)
+{
+	double ret = 0.0;
+	
+	ret += abs(time.tv_sec);
+	//printf("%0.10f\n", ret);
+	//ret += abs((((double) time.tv_nsec) / ((double) NANOS_PER_SEC)));
+	ret += (((double) time.tv_nsec) / 1000000000.0);
+	//printf("%0.10f\n", ret);
+
+	return ret;
+}
 
 //int validate_bpm(double bpm)
 //{

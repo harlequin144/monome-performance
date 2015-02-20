@@ -1,1 +1,6 @@
-THE TAP TEMPO RETURNS A SIGNIFICANTLY SLOWER TAP TIME....
+
+
+Make the timespec norm be dependent on difftime.
+
+complete the unit tests..
+

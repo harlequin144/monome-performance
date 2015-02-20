@@ -98,6 +98,9 @@ void 	set_tick_period( struct transport * trans, struct timespec period );
 void 	add_tick_client( struct transport * trans, char * port, char * prefix );
 void 	add_bpm_client( struct transport * trans, char * port, char * prefix );
 void 	tap( struct transport * trans, struct timespec tap_time );
+
+void calculate_tick_period( struct transport * trans );
+
 void 	clear_tap( struct transport * trans );
 
 // Secondary Methods - based on the basic ones
@@ -111,6 +114,8 @@ void 	print_timespec( struct timespec time);
 // Time Functions
 int timespec_geq(struct timespec time1, struct timespec time2);
 int timespec_leq(struct timespec time1, struct timespec time2);
+double timespec_to_double(struct timespec time);
+struct timespec double_to_timespec(double time);
 struct timespec timespec_norm(struct timespec time1, struct timespec time2);
 
 double period_to_bpm(struct timespec period);
