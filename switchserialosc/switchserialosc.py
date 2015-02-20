@@ -70,7 +70,7 @@ def response_loop(ser):
 			pin = int(read[0], 16)
 			state = int(read[1], 16)
 			if state in [0,1]:
-				#print 'pin ' + str(pin) + " to " + str(state)
+				print 'pin ' + str(pin) + " to " + str(state)
 
 				msg_str = paths[state][pin].split()
 				print msg_str
