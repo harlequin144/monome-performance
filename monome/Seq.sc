@@ -3,22 +3,22 @@ Seq {
 	const lPath = "/sc/seq/grid/led";
 
 	// State
-	var show_cnt = 0;
-	var ctrl_press_cnt = 0;
-	//var down_tick = 0;
-	var trans_on = false;
+	var showCnt = 0;
+	var controlPressCount = 0;
 	var pressStack;
 
+	var transOn = false;
+	var downTick = 0;
+	var lastTick = 0;
 
 	//Sequencer
 	var seq;
 	var mode = 0; //0 - normal play, 1 - recording, 2 - rec silently
-
 	var selectedSeq = 0; // 0 - 7 inclusive
 	var seqPos = 0;
 	var seqSpeed = 0;
 
-	// Osc/Midi
+	// Comms
 	var bridge;
 	var transport;
 	var midiOut; // Keeps track of what notes are on microbrute-side
@@ -35,12 +35,13 @@ Seq {
 		transport = NetAddr.new("localhost", transPortNum);
 		midiOut = midi;
 
-		trans_on = false;
+		transOn = false;
 		pressStack = List[];
 
  		seq = Array[
 			LinkedList[60],LinkedList[60],LinkedList[60],LinkedList[60],
 			LinkedList[60],LinkedList[60],LinkedList[60],LinkedList[60] ];
+		seq[0] = LinkedList[0,1,2,3,4,5,6,7];
 
 		// Osc Responder Registration
 		OSCdef(\seq_press,
@@ -58,22 +59,22 @@ Seq {
 
 		OSCdef(\seq_transport_stop,
 			{|msg|
-				trans_on = false;
+				transOn = false;
 				this.showLeft;
 			}, '/transport/stop');
 
 		OSCdef(\seq_hide,
 			{
-				show_cnt = show_cnt - 1;
-				//"show decreased".postln; show_cnt.postln;
-				if( show_cnt < 0 ) { show_cnt = 0 }
+				showCnt = showCnt - 1;
+				//"show decreased".postln; showCnt.postln;
+				if( showCnt < 0 ) { showCnt = 0 }
 			}, path+/+'hide');
 
 		OSCdef(\seq_show,
 			{
-				show_cnt = show_cnt + 1;
-				//"show increased".postln; show_cnt.postln;
-				if( show_cnt > 0 ) { this.show; };
+				showCnt = showCnt + 1;
+				//"show increased".postln; showCnt.postln;
+				if( showCnt > 0 ) { this.show; };
 			}, path+/+'show');
 
 		this.show();
@@ -85,7 +86,7 @@ Seq {
 	 */
 
 	pressResponder {|xPos, yPos, time|
-		show_cnt = 1;
+		showCnt = 1;
 
 		case
 		{ (xPos >= 4) && (xPos <= 15) }{
@@ -95,11 +96,11 @@ Seq {
 				{ this.setSeq( xPos - 8 ); }
 				{ this.setSpeed( xPos - 4 ); }
 			}
-			{ } //this.notePress(xPos, yPos) }
+			{ this.notePress(xPos, yPos) }
 		}
 		{ (xPos < 4) && ( xPos >= 0) }{
-			ctrl_press_cnt = ctrl_press_cnt + 1;
-			if( ctrl_press_cnt == 1){
+			controlPressCount = controlPressCount + 1;
+			if( controlPressCount == 1){
 				case
 				{ xPos == 0} {
 					case
@@ -134,8 +135,8 @@ Seq {
 		if( (xPos >= 4) && (yPos >= 1) )
 		{ this.noteRelease(xPos, yPos); }
 		{
-			ctrl_press_cnt = ctrl_press_cnt - 1;
-			if(ctrl_press_cnt < 0){ ctrl_press_cnt = 0 }
+			controlPressCount = controlPressCount - 1;
+			if(controlPressCount < 0){ controlPressCount = 0 }
 		}
 	}
 
@@ -146,125 +147,61 @@ Seq {
 
 		case
 		{ mode == 0 }{
-			if( trans_on ) {
+			downTick = lastTick;
+			if( transOn){ seqPos = 0; };
 
-			}{
-				midiOut.killNotesOn();
-				////if(seqPos == 0)
-				//{ midiOut.noteOn(noteStack.last()) }
-				//{ midiOut.noteOn(noteStack.last() + seq[selectedSeq][seqPos]) };
-				//seqPos = (seqPos + 1)%seq[selectedSeq].size;
-			}
+			midiOut.currentNoteOff;
+			pressStack.removeEvery( [note] );
+			pressStack.add( note );
+
+			if(seqPos == 0)
+			{ midiOut.noteOn( note ); }
+			{ 
+				midiOut.noteOn( 
+					pressStack.last() + seq[selectedSeq][seqPos]);
+			};
+
+			seqPos = (seqPos + 1)%seq[selectedSeq].size;
 		}
 
 		{ (mode == 1) || (mode == 2) }{ // record mode
-		//	midiOut.killNotesOn();
-		//	if(recordSilently == false){ midiOut.noteOn(note) };
-		//	if(seqPos == 0){
-		//		//seq[selectedSeq] = LinkedList[noteStack.last()];
-		//		seqPos = seqPos + 1;
-		//	}{
-		//		//seq[selectedSeq].add(noteStack.last()-seq[selectedSeq].first);
-		//		seqPos = seqPos + 1;
-		//	};
+			midiOut.currentNoteOff;
+			pressStack.removeEvery( [note] );
+			pressStack.add( note );
+			if( mode == 1 ){ midiOut.noteOn( note ) };
+			//currentNote = note;
+
+			case
+			{ seqPos == 0 }{
+				seq[selectedSeq] = LinkedList[ note ];
+				seqPos = seqPos + 1;
+			}
+			{ seqPos < 60 } {
+				seq[selectedSeq].add(note - seq[selectedSeq].first);
+				seqPos = seqPos + 1;
+			};
 		}
 
 	}
 
 	noteRelease {|xPos, yPos|
 		var note = (12*yPos) + (xPos-4);
-		//var currentlyPlayingNote = noteStack.last();
-		//noteStack.remove(note);
 
-		//case
-		//{ seqState > 1}{
-		//	//case
-		//	// Letting go of the one and last note on stack
-		//	//{ noteStack.size == 0 }{
-		//		//noteStack.remove(note);
-		//		//if( sustain )
-		//		//{ noteStack.add( -1*abs(note) ) }
-		//		//{ if(trans_on == false){ midiOut.killNotesOn() } };
-		//	//}
-
-		//	// More than one on stack and letting go of one playing now
-		//	//{ note == currentlyPlayingNote }{
-		//		////noteStack.remove(note);
-		//		//if( trans_on == false){
-		//			//midiOut.killNotesOn();
-		//			//midiOut.noteOn(noteStack.last()+seq[selectedSeq][seqPos]);
-		//			//seqPos = (seqPos + 1)%seq[selectedSeq].size;
-		//		//}
-		//	//}
-
-		//	// More than one on stack and not letting go of playing note
-		//	//{ note != noteStack.last() }
-		//	//{ noteStack.remove(note) }
-		//}
-
-		//{ (seqState == 0) || (seqState == 1)}{
-		//	//case
-		//	// we released the one and last note on stack
-		//	//{ noteStack.size == 0 }{
-		//		//noteStack.remove(note);
-		//		//if( sustain )
-		//		//{ noteStack.add( -1*abs(note) ) }
-		//		////{ 
-		//			//midiOut.noteOff(note);
-		//			//noteStack.remove(note);
-		//		//};
-		//	//}
-//
-		//	// More than one on stack and letting go of one playing now
-		//	//{ note == currentlyPlayingNote }{
-		//		//midiOut.noteOff(note);
-		//		//noteStack.remove(note);
-		//		////midiOut.noteOn(noteStack.last())
-		//	//}
-
-		//	// More than one on stack and not letting go of playing note
-		//	//{ note != noteStack.last() }
-		//	//{ noteStack.remove(note) }
-
-		//	//{ true }
-		//	//{
-		//	//	"entered case in free and record release function".postln;
-		//	//	noteStack.postln;
-		//	//	note.postln;
-		//	//}
-		//}
-	}
-
-	/*
-	 * Other Functions
-	 */
-
-	recSeqButtonPress {
-		//if(seqState == 1){ // Seq is in record mode
-			// Pressing it again will put it in silent record mode
-			//if(recordSilently){ // turn recording off
-				//recordSilently = false;
-				//seqState = 0;
-				bridge.sendMsg( lPath+/+"row",0,3, 80, 171);
-				bridge.sendMsg( lPath+/+"row",0,4, 80, 171);
-			//}{
-				//recordSilently = true;
-				bridge.sendMsg( lPath+/+"row",0,3, 81, 171);
-				bridge.sendMsg( lPath+/+"row",0,4, 82, 171);
-			//}
-		//}{
-			// Seq is off or in play mode
-			//if( seqState > 1){
-				midiOut.killNotesOn();
-				//if(noteStack.size > 0){ midiOut.noteOn(abs(noteStack.last())) };
-			//};
-
-			//seqState = 1; // turn on seq in record mode
-			//recordSilently = false; // first press keeps it audible
-			bridge.sendMsg( lPath+/+"row",0,3, 83, 171);
-			bridge.sendMsg( lPath+/+"row",0,4, 83, 171);
-		//};
-		//seqPos = 0;
+		if( note == pressStack.last ){
+			case
+			{ mode == 0 }{
+				pressStack.removeEvery( [note] );
+				if( transOn ) 
+				{ if( pressStack.size <= 0 ) { midiOut.currentNoteOff; } }
+				{ midiOut.currentNoteOff; }
+			}
+	
+			{ (mode == 1) || (mode == 2) }{ // record mode
+				midiOut.currentNoteOff;
+				pressStack.removeEvery( [note] );
+			}
+		}
+		{ pressStack.removeEvery( [note] ); };
 	}
 
 	setSeq {|seqNum|
@@ -272,7 +209,7 @@ Seq {
 			selectedSeq = seqNum;
 			this.showRight;
 		};
-		//seqPos = 0;
+		seqPos = 0;
 	}
 
 	setSpeed {|speed|
@@ -284,6 +221,8 @@ Seq {
 
 	modeToggle {
 		mode = (mode + 1) % 3;
+		if( mode != 2 )
+		{ seqPos = 0; };
 		this.showLeft;
 	}
 
@@ -297,47 +236,52 @@ Seq {
 
 	tickResponder {|tick|
 		var speed = 36;
-		case
-		{ tick == 0 } { this.trans_light_dn; }
-		{ tick == 72 } { this.trans_light_up; };
+		var tickOn = 0, tickOff = 1;
 
-		if( trans_on == false ){
+		lastTick = tick;
+		
+		case
+		{ tick == 0 } { this.transLightDn; }
+		{ tick == 72 } { this.transLightUp; };
+
+		if( transOn == false ){
 			bridge.sendMsg(lPath +/+ "set",0,2,1);
 			bridge.sendMsg(lPath +/+ "set",0,5,1);
-			trans_on = true;
+			transOn = true;
 		};
 
-		//case
-		//{ seqPlaySpeed == 0 }{ speed = 12 }
-		//{ seqPlaySpeed == 1 }{ speed = 6 }
-		//{ seqPlaySpeed == 2 }{ speed = 3 }
-		//{ seqPlaySpeed == 3 }{ speed = 8 };
+		case
+		{ seqSpeed == 0 }{ speed = 144 }
+		{ seqSpeed == 1 }{ speed = 72 }
+		{ seqSpeed == 2 }{ speed = 36 }
+		{ seqSpeed == 3 }{ speed = 18 };
 
-		//if(	(seqState > 1) ) { //&& (noteStack.size > 0)){ //down beat or note on
-			if(((tick/speed)%4) == 0){
-				//var note = if(seqPos == 0)
-					//{abs() { //noteStack.last())}
-					//{abs(noteStack.last()) + seq[selectedSeq][seqPos]};
-				midiOut.killNotesOn();
-				//midiOut.noteOn(note);
-				//seqPos = (seqPos + 1)%seq[selectedSeq].size;
-			};
-		//};
+		if( (mode == 0) && (pressStack.size > 0) ) {
+			case
+			{ (tick%speed) == (downTick%speed) } {
+				var note = 
+				if(seqPos == 0)
+				{ pressStack.last() }
+				{ pressStack.last() + seq[selectedSeq][seqPos] };
 
-		// Kill notes off in the seq
-		//if( (seqState > 1) && ((tick/speed)%4 == 3) )
-		//{ midiOut.killNotesOn() };
+				midiOut.noteOn(note);
+				seqPos = (seqPos + 1)%seq[selectedSeq].size;
+			}
+
+			{ tick%speed == ( ( (downTick%speed) + ((speed/4)*3) )%speed) }
+			{ midiOut.currentNoteOff; };
+		}
 	}
 
-	trans_light_up{
-		if(show_cnt > 0){
+	transLightUp{
+		if(showCnt > 0){
 			bridge.sendMsg(lPath +/+ "row",0,3, 13,0);
 			bridge.sendMsg(lPath +/+ "row",0,4, 93,171);
 		}
 	}
 
-	trans_light_dn{
-		if(show_cnt > 0){
+	transLightDn{
+		if(showCnt > 0){
 			bridge.sendMsg(lPath +/+ "row",0,3, 03,0);
 			bridge.sendMsg(lPath +/+ "row",0,4, 83,171);
 		}
@@ -349,7 +293,7 @@ Seq {
 	}
 
 	showLeft {
-		if(show_cnt > 0){
+		if(showCnt > 0){
 			var ledOut = 0, ledIn = 0;
 			case
 			{ mode == 0 } {ledOut = 0; ledIn = 4;}
@@ -359,11 +303,11 @@ Seq {
 			bridge.sendMsg(lPath +/+ "map", 0,0,
 				1 + ledOut + ( 2**(4+seqSpeed) ),
 				ledIn + ( 2**(4+seqSpeed) ),
-				80 + ledOut + if( trans_on ){1}{0},
+				80 + ledOut + if( transOn ){1}{0},
 	
 				1, 81, 
 
-				80 + if(midiOut.sustaining){14}{0} + if( trans_on ){1}{0}, 
+				80 + if(midiOut.sustaining){14}{0} + if( transOn ){1}{0}, 
 				if(midiOut.sustaining){10}{4},
 				81 + if(midiOut.sustaining){14}{0}
 			);
@@ -371,7 +315,7 @@ Seq {
 	}
 
 	showRight {
-		if(show_cnt > 0) { 
+		if(showCnt > 0) { 
 			bridge.sendMsg( lPath +/+ "map", 8,0, 
 				2**selectedSeq,
 				2**selectedSeq,
@@ -381,13 +325,13 @@ Seq {
 	}
 
 	hide{
-		show_cnt = 0;
+		showCnt = 0;
 		bridge.sendMsg(path+/+"hide"); //sending a request to bridge to hide
-		ctrl_press_cnt = 0;
-		//if( midiOut.sustaining == false){
-			//midiOut.killNotesOn();
-			//{noteStack.size > 0}.while({noteStack.pop()});
-		//};
+		controlPressCount = 0;
+		if( midiOut.sustaining == false){
+			midiOut.currentNoteOff;
+			pressStack = List[];
+		};
 	}
 
 }

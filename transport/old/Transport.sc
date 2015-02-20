@@ -109,7 +109,11 @@ Transport {
 		SystemClock.clear;
 		tapTimes = List[];
 		//midiOut.stop;
-		//otherPorts.do({|port| port.sendMsg("/dtrig/stop") });
+		otherPorts.do({|port| 
+			port.sendMsg("/sc/mono/stop");
+			port.sendMsg("/sc/seq/stop");
+			port.sendMsg("/sc/micronome/stop");
+		});
 	}
 
 	toggle {
@@ -126,7 +130,7 @@ Transport {
 		{
 			//If the taps are old, clear em out
 			if( (tapTimes.size >= 1) &&
-				(time - tapTimes.last) > (3 * 48 * tickPeriod) )
+				(time - tapTimes.last) > (3 * 144 * tickPeriod) )
 			{ tapTimes = List[time]; }
 
 			// Just adding on to a current list.
@@ -144,7 +148,7 @@ Transport {
 				});
 
 				// Average and scale
-				newPeriod = ((newPeriod / (tapTimes.size-1))/48);
+				newPeriod = ((newPeriod / (tapTimes.size-1))/144);
 				this.setPeriod(newPeriod);
 
 			};
@@ -186,11 +190,11 @@ Transport {
 	 * Conveinence Methods
 	 */
 
-	getBpm { ^( (1/(tickPeriod*(2**(-1*factor))))*(60/48) ) }
+	getBpm { ^( (1/(tickPeriod*(2**(-1*factor))))*(60/144) ) }
 
 	setBpm { |bpm|
 		if((bpm >= 10) && (bpm <= 600))
-		{ tickPeriod = (1 / ((bpm * 48)/60)) };
+		{ tickPeriod = (1 / ((bpm * 144)/60)) };
 
 		this.setRightMask;
 	}
@@ -262,7 +266,7 @@ Transport {
 				);
 
 
-				tick = (tick+1)%48; //tick.postln;
+				tick = (tick+1)%144; //tick.postln;
 				// The execution of this function marks the begining of the
 				// tick that tick has just been set to.
 				// Delay factor update until down beat

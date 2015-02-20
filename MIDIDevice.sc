@@ -6,7 +6,7 @@ MonophonicMIDIDevice : MIDIOut {
 
 	var notesOnStack;
 	var <sustaining;
-	var currentNote; //the note that is currently on.
+	var <currentNote; //the note that is currently on.
 
 
 	*new {|deviceName, portName|
@@ -60,6 +60,10 @@ MonophonicMIDIDevice : MIDIOut {
 		{ notesOnStack.removeEvery([note]); };
 	}
 
+	currentNoteOff {
+		this.noteOff( currentNote );
+	}
+
 	killNotesOn {
 		notesOnStack.do( {|note| super.noteOff(0, note) } );
 		super.noteOff( 0, currentNote );
@@ -73,6 +77,4 @@ MonophonicMIDIDevice : MIDIOut {
 	killallnotes {
 		(1..150).do({|note| super.noteOff(0, note) })
 	}
-
-
 }
