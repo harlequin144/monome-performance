@@ -830,8 +830,7 @@ int timespec_leq(struct timespec time1, struct timespec time2)
 	
 	else if( 
 		//( abs(difftime(time1.tv_sec,time2.tv_sec)) < 0.0000000001 ) &&	
-		( time1.tv_sec == time2.tv_sec) && 
-		( time1.tv_nsec <= time2.tv_nsec ) 
+		( time1.tv_sec == time2.tv_sec) && ( time1.tv_nsec <= time2.tv_nsec ) 
 	)
 		return 1;
 
@@ -867,6 +866,8 @@ struct timespec timespec_norm(struct timespec time1, struct timespec time2)
 	}
 	
 	return result;
+	//return double_to_timespec( 
+			//fabs( timespec_to_double(time1) - timespec_to_double(time2)) );
 }
 
 double period_to_bpm(struct timespec period)

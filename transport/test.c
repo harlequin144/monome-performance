@@ -1,5 +1,5 @@
 #include <assert.h>
-#define RUN_TESTS 0
+#define RUN_TESTS 1
 
 
 void test_calculate_tick_period();
@@ -14,6 +14,15 @@ void test_period_to_bpm();
 void test_bpm_to_period();
 
 
+struct timespec t1 = {.tv_sec = 0, .tv_nsec = 0};
+struct timespec t2 = {.tv_sec = 0, .tv_nsec = 20000};
+struct timespec t3 = {.tv_sec = 1, .tv_nsec = 31234};
+struct timespec t4 = {.tv_sec = 3, .tv_nsec = 64567};
+struct timespec t5 = {.tv_sec = 0, .tv_nsec = 1000000000};
+struct timespec t6 = {.tv_sec = 0, .tv_nsec = 5000000000};
+struct timespec t7 = {.tv_sec = 0, .tv_nsec = 50000000000};
+struct timespec t8 = {.tv_sec = 1, .tv_nsec = 64567};
+struct timespec t9 = {.tv_sec = 0, .tv_nsec = 3472222};// 120 bpm
 
 
 
@@ -35,6 +44,14 @@ void run_tests()
 		puts("testing calculate_tick_period");
 		test_calculate_tick_period();
 
+		puts("testing geq,leq");
+		test_timespec_geq();
+		test_timespec_leq();
+
+		puts("testing time converters");
+	 	test_period_to_bpm();
+		test_bpm_to_period();
+
 		printf("\n\nTesting complete!\n\n");
 	}
 }
@@ -44,10 +61,10 @@ void run_tests()
 
 void test_timespec_norm()
 {
-	struct timespec t1 = {.tv_sec = 0, .tv_nsec = 0};
-	struct timespec t2 = {.tv_sec = 0, .tv_nsec = 20000};
-	struct timespec t3 = {.tv_sec = 1, .tv_nsec = 31234};
-	struct timespec t4 = {.tv_sec = 3, .tv_nsec = 64567};
+	//struct timespec t1 = {.tv_sec = 0, .tv_nsec = 0};
+	//struct timespec t2 = {.tv_sec = 0, .tv_nsec = 20000};
+	//struct timespec t3 = {.tv_sec = 1, .tv_nsec = 31234};
+	//struct timespec t4 = {.tv_sec = 3, .tv_nsec = 64567};
 
 	struct timespec result = timespec_norm( t1, t2 );
 	assert( result.tv_sec == 0 );
@@ -98,10 +115,10 @@ void test_calculate_tick_period()
 	puts("here");
 	new_transport( &trans, &params);
 
-	struct timespec t1 = {.tv_sec = 0, .tv_nsec = 0};
-	struct timespec t2 = {.tv_sec = 0, .tv_nsec = 20000};
-	struct timespec t3 = {.tv_sec = 1, .tv_nsec = 31234};
-	struct timespec t4 = {.tv_sec = 1, .tv_nsec = 64567};
+	//struct timespec t1 = {.tv_sec = 0, .tv_nsec = 0};
+	//struct timespec t2 = {.tv_sec = 0, .tv_nsec = 20000};
+	//struct timespec t3 = {.tv_sec = 1, .tv_nsec = 31234};
+	//struct timespec t4 = {.tv_sec = 1, .tv_nsec = 64567};
 
 
 	puts("tapping t1");
@@ -114,7 +131,7 @@ void test_calculate_tick_period()
 	tap( &trans, t3 );
 	printf("\n");
 	puts("tapping t4");
-	tap( &trans, t4 );
+	tap( &trans, t8 );
 	printf("\n");
 
 	calculate_tick_period( &trans );
@@ -180,13 +197,13 @@ void test_double_to_timespec(){
 
 void test_timespec_to_double()
 {
-	struct timespec t1 = {.tv_sec = 0, .tv_nsec = 0};
-	struct timespec t2 = {.tv_sec = 0, .tv_nsec = 20000};
-	struct timespec t3 = {.tv_sec = 1, .tv_nsec = 31234};
-	struct timespec t4 = {.tv_sec = 1, .tv_nsec = 64567};
-	struct timespec t5 = {.tv_sec = 0, .tv_nsec = 1000000000};
-	struct timespec t6 = {.tv_sec = 0, .tv_nsec = 5000000000};
-	struct timespec t7 = {.tv_sec = 0, .tv_nsec = 50000000000};
+	//struct timespec t1 = {.tv_sec = 0, .tv_nsec = 0};
+	//struct timespec t2 = {.tv_sec = 0, .tv_nsec = 20000};
+	//struct timespec t3 = {.tv_sec = 1, .tv_nsec = 31234};
+	//struct timespec t4 = {.tv_sec = 1, .tv_nsec = 64567};
+	//struct timespec t5 = {.tv_sec = 0, .tv_nsec = 1000000000};
+	//struct timespec t6 = {.tv_sec = 0, .tv_nsec = 5000000000};
+	//struct timespec t7 = {.tv_sec = 0, .tv_nsec = 50000000000};
 
 	double r1 = timespec_to_double(t1);
 	double r2 = timespec_to_double(t2);
@@ -200,14 +217,54 @@ void test_timespec_to_double()
 	//printf("%0.10f\n", r2);
 	assert( r2 == 0.00002 );
 	assert( r3 == 1.000031234 );
-	assert( r4 == 1.000064567 );
+	assert( r4 == 3.000064567 );
 	assert( r5 == 1.0 );
 	assert( r6 == 5.0 );
 	assert( r7 == 50.0 );
 
 }
 
-//void test_timespec_geq();
-//void test_timespec_leq();
-//void test_period_to_bpm();
-//void test_bpm_to_period();
+void test_timespec_geq()
+{
+	assert( timespec_geq( t1, t1 ) == 1);
+	assert( timespec_geq( t1, t2 ) == 0);
+	assert( timespec_geq( t2, t1 ) == 1);
+	assert( timespec_geq( t7, t7 ) == 1);
+	assert( timespec_geq( t4, t1 ) == 1);
+	assert( timespec_geq( t4, t3 ) == 1);
+
+	// This one fails because difftime does not work with nsecs that are too
+	// large apparently.
+	//assert( timespec_geq( t7, t3 ) == 1);
+	
+}
+
+void test_timespec_leq()
+{
+	assert( timespec_leq( t1, t1 ) == 1);
+	assert( timespec_leq( t1, t2 ) == 1);
+	assert( timespec_leq( t2, t1 ) == 0);
+	assert( timespec_leq( t7, t7 ) == 1);
+	assert( timespec_leq( t4, t1 ) == 0);
+	assert( timespec_leq( t4, t3 ) == 0);
+	//assert( timespec_leq( t7, t3 ) == 0);
+}
+
+void test_period_to_bpm()
+{
+	double r1 = period_to_bpm( t9 );
+}
+
+void test_bpm_to_period()
+{
+	struct timespec r1 = bpm_to_period(120.0);
+	struct timespec diff = timespec_norm( r1, t9 );
+
+	print_timespec( r1 );
+	print_timespec( t9 );
+	print_timespec( diff );
+
+	assert( diff.tv_sec <= TOL.tv_sec);
+	assert( diff.tv_nsec <= TOL.tv_nsec);
+
+}

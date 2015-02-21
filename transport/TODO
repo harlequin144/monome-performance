@@ -1,6 +1,0 @@
-
-
-Make the timespec norm be dependent on difftime.
-
-complete the unit tests..
-
