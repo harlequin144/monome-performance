@@ -73,7 +73,7 @@ class Bridge(liblo.Server):
 
 		for prefix in [client.prefix for client in self.get_clients()]: 
 			self.add_method(prefix + '/hide', '', self.client_hide_responder)
-			self.add_method(prefix + '/switch_client', '', 
+			self.add_method(prefix + '/switch_to_client', 'is', 
 					self.switch_client_responder)
 			self.add_method(prefix + '/grid/led/row', 'iiii', self.led_row)
 			#self.add_method(prefix + '/grid/led/col', 'iiii', self.led_col)
@@ -88,6 +88,9 @@ class Bridge(liblo.Server):
 		self.report("q: quit")
 		self.report("<>: intensity")
 		self.print_screen()
+
+		for client in [c for c in self.clients.values() if c != None]:
+			self.report(str(client.port) + " : " + client.prefix)
 		
 		for monome in self.monomes.itervalues():
 			liblo.send(monome.monome_port, '/sys/prefix', 'bridge')
@@ -262,15 +265,22 @@ class Bridge(liblo.Server):
 					monome.light_map(8, 0, self.led_mask[1])
 
 	def switch_client_responder(self, path, args, types, src):
-		for monome in self.monomes.itervalues():
-			if not monome.is_at_bridge():
-				if path.startswith( monome.selected_client.prefix ):
-					#monome.switch_to_bridge()
-					#monome.light_map(0, 0, self.led_mask[0])
-					#monome.light_map(8, 0, self.led_mask[1])
-					monome.light_clear()
-					monome.switch_to_client( self.clients[(x,y)] )
-	 
+		c = None
+
+		for client in self.clients.values():
+			if client != None:
+				if client.port == args[0] and client.prefix == args[1]:
+					c = client
+					break
+
+		if c != None:
+			for monome in self.monomes.itervalues():
+				if not monome.is_at_bridge():
+					if path.startswith( monome.selected_client.prefix ):
+						monome.light_clear()
+						monome.switch_to_client( c ) 
+
+	 	
 	# Led Message Forwarding
 	# (For sending messages from clients back to serialosc and to the monome)
 

@@ -67,7 +67,10 @@ Mono {
 				if( xPos == 0 ){
 					case
 					{ yPos == 0 } { this.hide }
-					{ yPos == 7 } {}
+					{ yPos == 7 } { 
+						bridge.sendMsg(path +/+ "switch_to_client", 57120,
+							"/sc/seq" );
+					}
 				}{
 					case
 					{ (yPos >= 4) && (yPos <= 6) } { this.sustainToggle() }

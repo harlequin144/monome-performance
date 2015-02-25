@@ -105,7 +105,11 @@ Seq {
 				{ xPos == 0} {
 					case
 					{ yPos == 0 } { this.hide }
-					{ yPos == 7 } {} // switch to the mono
+					{ yPos == 7 } {
+						bridge.sendMsg(path +/+ "switch_to_client", 
+							57120, "/sc/mono")
+					
+					} // switch to the mono
 
 					{ (yPos >= 2) && (yPos <= 5) }
 					{ transport.sendMsg("/transport/toggle") }
@@ -303,6 +307,7 @@ Seq {
 			bridge.sendMsg(lPath +/+ "map", 0,0,
 				1 + ledOut + ( 2**(4+seqSpeed) ),
 				ledIn + ( 2**(4+seqSpeed) ),
+
 				80 + ledOut + if( transOn ){1}{0},
 	
 				1, 81, 
@@ -310,6 +315,12 @@ Seq {
 				80 + if(midiOut.sustaining){14}{0} + if( transOn ){1}{0}, 
 				if(midiOut.sustaining){10}{4},
 				81 + if(midiOut.sustaining){14}{0}
+
+				//175 + ledOut + if( transOn ){1}{0},
+				//1, 161, 
+				//160 + if(midiOut.sustaining){14}{0} + if( transOn ){1}{0}, 
+				//if(midiOut.sustaining){10}{4},
+				//160 + if(midiOut.sustaining){14}{0}
 			);
 		};
 	}
@@ -320,6 +331,7 @@ Seq {
 				2**selectedSeq,
 				2**selectedSeq,
 				171,0, 171,171,0,171 
+				//84,0, 84,84,0,84 
 			); 
 		};
 	}
