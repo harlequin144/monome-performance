@@ -1,5 +1,5 @@
 #include <assert.h>
-#define RUN_TESTS 1
+#define RUN_TESTS 0
 
 
 void test_calculate_tick_period();

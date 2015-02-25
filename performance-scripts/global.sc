@@ -1,6 +1,8 @@
 (
 MIDIClient.init;
 
+//~trans = Transport(bridgePort: 8000, othPorts: 57120);
+
 ~microbrute = MonophonicMIDIDevice("USB2.0-MIDI-USB2.0-MIDI MIDI 2");
 //~zyn = MIDIDevice("ZynAddSubFX-ZynAddSubFX");
 
