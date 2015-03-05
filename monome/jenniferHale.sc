@@ -9,7 +9,7 @@
 (
 
 // Osc
-var monome = NetAddr.new("localhost", 13090);
+var monome = NetAddr.new("localhost", 12261);
 var bridge = NetAddr.new("localhost", 8000);
 
 var invertLight, resetLight;
