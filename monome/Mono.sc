@@ -50,6 +50,11 @@ Mono {
 				if( show_cnt > 0){ this.show; };
 			}, path+/+'show');
 
+		OSCdef(\mono_sustain,
+			{
+				this.sustainToggle;
+			}, path+/+'sustain');
+
 		this.show();
 	}
 
