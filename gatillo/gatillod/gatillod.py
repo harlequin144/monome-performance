@@ -4,8 +4,6 @@ from time import sleep
 import serial
 from serial.tools import list_ports
 
-from gatillo_config import *
-
 
 def remove_all(lst, item):
 	if lst == ():
@@ -50,7 +48,7 @@ def combo_search( combo_build, press_stack, combos):
 			return combo_search(combo_build, pop(press_stack), combos)
 
 
-def response_loop(ser):
+def response_loop(ser, press_combos, release):
 	press_stack = ()
 
 	while( True ):
@@ -80,7 +78,7 @@ def response_loop(ser):
 			break
 
 
-def look_for_device( desc ):
+def look_for_device( desc, teensy_id):
 	print "Waiting and looking for the device"
 
 	while( True ):
@@ -95,10 +93,3 @@ def look_for_device( desc ):
 				print 'Serial Exception! Attempted to open the device, but failed.'
 
 		sleep(1)
-
-
-
- 
-while(True):
-	serial_dev = look_for_device("/dev/ttyButtonBox")
-	response_loop( serial_dev )
