@@ -15,21 +15,26 @@ def remove_all(lst, item):
 	elif lst[0] != item:
 		return (lst[0],) + remove_all(lst[1:], item)
 
+def pop(lst):
+	return lst[:len(lst)-1]
 
 
 def combo_search( combo_build, press_stack, combos):
 	if press_stack == ():
 		return combo_build
 
+	elif len(combos) == 0:
+		return ()
+
 	elif combo_build == ():
 		possible_combos = [c for c in combos if c[-1] == press_stack[-1]]
 
-		if possible_combos != []:
-			if len(press_stack) >= min(map(lambda x: len(x), possible_combos)):
-				return combo_search( (press_stack[-1],),
-						press_stack[:len(press_stack)-1], 
-						[c[:len(c)-1] for c in possible_combos])
-		return ()
+		#if possible_combos != []:
+		if len(press_stack) >= min(map(lambda x: len(x), possible_combos)):
+			return combo_search( (press_stack[-1],), pop(press_stack), 
+					map(pop, possible_combos))
+		else:
+			return ()
 
 
 	else:
@@ -38,12 +43,11 @@ def combo_search( combo_build, press_stack, combos):
 
 		if possible_combos != []:
 			return combo_search( (press_stack[-1],) + combo_build,
-					press_stack[:len(press_stack)-1], 
-					[c[:len(c)-1] for c in possible_combos])
+					pop(press_stack),
+					map(pop, possible_combos))
 
 		else:
-			return combo_search( combo_build,
-					press_stack[:len(press_stack)-1], combos)
+			return combo_search(combo_build, pop(press_stack), combos)
 
 
 def response_loop(ser):
