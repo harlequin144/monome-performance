@@ -18,26 +18,32 @@ def pop(lst):
 
 
 def combo_search( combo_build, press_stack, combos):
-	if press_stack == ():
-		return combo_build
-
-	elif len(combos) == 0:
+	if len(combos) == 0:
+		print "in the combo killer"
 		return ()
+
+	elif press_stack == ():
+		if len(combos) != 0:
+			return combo_build
+		else:
+			return ()
+
 
 	elif combo_build == ():
 		possible_combos = [c for c in combos if c[-1] == press_stack[-1]]
+		print possible_combos
 
-		#if possible_combos != []:
-		if len(press_stack) >= min(map(lambda x: len(x), possible_combos)):
-			return combo_search( (press_stack[-1],), pop(press_stack), 
-					map(pop, possible_combos))
-		else:
-			return ()
+		if possible_combos != []:
+			if len(press_stack) >= min(map(lambda x: len(x), possible_combos)):
+				return combo_search( (press_stack[-1],), pop(press_stack), 
+						map(pop, possible_combos))
+		return ()
 
 
 	else:
 		f = lambda x: x[-1] == press_stack[-1] 
 		possible_combos = filter(f, filter( lambda x: len(x) > 0, combos))
+		print possible_combos
 
 		if possible_combos != []:
 			return combo_search( (press_stack[-1],) + combo_build,
