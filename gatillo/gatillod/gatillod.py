@@ -4,7 +4,7 @@ from time import sleep
 import serial
 from serial.tools import list_ports
 
-from switchbox_config import *
+from gatillo_config import *
 
 
 def remove_all(lst, item):

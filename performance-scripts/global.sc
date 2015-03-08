@@ -4,7 +4,7 @@ MIDIClient.init;
 //~trans = Transport(bridgePort: 8000, othPorts: 57120);
 
 ~microbrute = MonophonicMIDIDevice("USB2.0-MIDI-USB2.0-MIDI MIDI 2");
-//~zyn = MIDIDevice("ZynAddSubFX-ZynAddSubFX");
+~zyn = MIDIOut("ZynAddSubFX-ZynAddSubFX");
 
 
 
@@ -16,8 +16,10 @@ MIDIClient.init;
 ~seq = Seq(bridgePortNum: 8000, midi: ~microbrute);
 //~poly = Poly(8000, ~zyn);
 
-)
+~poly = Poly(8000,MIDIOut.findPort("ZynAddSubFX-ZynAddSubFX", "ZynAddSubFX-ZynAddSubFX").uid);
 
+
+)
 
 ~microbrute.killallnotes
 

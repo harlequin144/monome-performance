@@ -1,5 +1,5 @@
 s.boot
-
+s.shutdown
 (
 var drum_set_path = "/home/dylan/music/samples/VintageDrumSamples24bit/Roland TR-808";
 
@@ -25,7 +25,7 @@ var ride_buf = Buffer.read(s, drum_set_path +/+ "TR-808Ride01.wav");
 )
 
 
-~hato.go
+~hato.gollli
 ~ride.go
 
 "arbeit".scramble.asSymbol;
