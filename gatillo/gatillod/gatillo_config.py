@@ -1,26 +1,35 @@
-
 from PressTreeNode import *
 from liblo import *
 
+
+#old_teensy_id = "USB VID:PID=16c0:0483 SNR=478540"
+teensy_id = "USB VID:PID=16c0:0483 SNR=725240"
+
+
 def snare():
 	send(57120, "/sc/sampler/snare")
+	print "snare"
 
 def kick():
 	send(57120, "/sc/sampler/kick")
+	print "kick"
 
 def hatc():
 	send(57120, "/sc/sampler/hatc")
+	print "hatc"
 	
 def ride():
 	send(57120, "/sc/sampler/ride")
+	print "ride"
 
 def snare_kick():
-	send(57120, "/sc/sampler/snare")
-	send(57120, "/sc/sampler/kick")
+	snare()
+	kick()
 
 
 def microbrute_sustain():
-	send(57120, "/sc/mono/sustain")
+	print "micro sustain"
+	#send(57120, "/sc/mono/sustain")
 
 
 
@@ -44,18 +53,18 @@ def microbrute_sustain():
 		
 
 
-press = {
-	(1): ride,
-	(3): kick,
-	(5): snare,
-	(6): snare,
-	(7): hatc,
-	(8): hatc,
+
+press_combos = {
+	(1,): ride,
+	(3,): kick,
+	(5,): snare,
+	(6,): snare,
+	(7,): hatc,
+	(8,): hatc,
 
 	(3, 6): snare_kick,
 	(6, 3): snare_kick,
-
-	(14):  microbrute_sustain,
+	(9, 10): snare_kick,
 }
 
 release = {
