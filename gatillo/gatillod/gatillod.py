@@ -17,41 +17,84 @@ def pop(lst):
 	return lst[:len(lst)-1]
 
 
+#def combo_search( combo_build, press_stack, combos):
+#	if press_stack == ():
+#		return combo_build
+#
+#	elif combo_build == ():
+#		possible_combos = [c for c in combos if c[-1] == press_stack[-1]]
+#
+#		if possible_combos != []:
+#			if len(press_stack) >= min(map(lambda x: len(x), possible_combos)):
+#				return combo_search( (press_stack[-1],), pop(press_stack), 
+#						map(pop, possible_combos))
+#
+#		return ()
+#
+#
+#	else:jjj
+#		for combo in combos:
+#			if combo[-1] == press_stack[-1]:
+
+
+def maximal_elements(l):
+	if len(l) == 0:
+		return []
+	else:
+		max_len = max(map(len, l))
+		return filter(lambda x: len(x) == max_len, l)
+
+	
+
 def combo_search( combo_build, press_stack, combos):
-	if len(combos) == 0:
-		print "in the combo killer"
-		return ()
+	if False:
+		print "combo_build: " + str( combo_build)
+		print "press_stack: " + str( press_stack)
+		print "combos: " +  str(combos)
+		print  ""
 
-	elif press_stack == ():
-		if len(combos) != 0:
-			return combo_build
+	if press_stack == ():
+		if () in combos:
+			return [combo_build]
 		else:
-			return ()
-
+			#print "here"
+			return []
 
 	elif combo_build == ():
 		possible_combos = [c for c in combos if c[-1] == press_stack[-1]]
-		print possible_combos
 
-		if possible_combos != []:
-			if len(press_stack) >= min(map(lambda x: len(x), possible_combos)):
-				return combo_search( (press_stack[-1],), pop(press_stack), 
-						map(pop, possible_combos))
-		return ()
+		if len(possible_combos) != 0:
+			combo_build = (press_stack[-1],) 
+			pop_combos = map(pop, possible_combos)
+
+			list1 = combo_search(combo_build, pop(press_stack), pop_combos)
+			list2 = combo_search(combo_build, pop(pop(press_stack)), pop_combos)
+
+			return list(set(maximal_elements( list1 + list2 )))
+		return []
 
 
 	else:
 		f = lambda x: x[-1] == press_stack[-1] 
 		possible_combos = filter(f, filter( lambda x: len(x) > 0, combos))
-		print possible_combos
 
-		if possible_combos != []:
-			return combo_search( (press_stack[-1],) + combo_build,
-					pop(press_stack),
-					map(pop, possible_combos))
+		if len(possible_combos) == 0:
+			list1 = combo_search(combo_build, pop(press_stack), combos)
+			list2 = combo_search(combo_build, pop(pop(press_stack)), combos)
+
+			return list(set(maximal_elements( list1 + list2 )))
 
 		else:
-			return combo_search(combo_build, pop(press_stack), combos)
+			combo_build = (press_stack[-1],) + combo_build
+			pop_combos = map(pop, possible_combos)
+
+			if () not in combos:
+				return combo_search( combo_build, pop(press_stack), pop_combos)
+
+			else:
+				return combo_search( combo_build, pop(press_stack), pop_combos + [()])
+
+
 
 
 def response_loop(ser, press_combos, release):
@@ -74,7 +117,7 @@ def response_loop(ser, press_combos, release):
 
 
 				elif state == 0:
-					press_stack = remove_all( press_stack, pin )
+					press_stack = remove_all(press_stack, pin)
 
 				#	if pin in release.keys():
 				#		release[pin]()

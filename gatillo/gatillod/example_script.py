@@ -42,6 +42,7 @@ press_combos = {
 	(9, 10): snare_kick,
 
 	(14,):  microbrute_sustain,
+	(4,10,6): kick,
 }
 
 release = {
@@ -58,22 +59,6 @@ release = {
 teensy_id = "USB VID:PID=16c0:0483 SNR=725240"
 
 
-fun = lambda: True
-
-press_combos = {
-	(2,): fun,
-	(5,): fun,
-	(6,): fun,
-	(7,): fun,
-	(8,): fun,
-	(9,): fun,
-
-	(2, 6): fun,
-	(6, 2): fun,
-	(9, 10): fun,
-
-	(14,):  fun,
-}
 
 release = {
 		}
