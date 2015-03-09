@@ -36,11 +36,11 @@ for press in combos:
 #for stack in powerset((2,4,6,7,8,9,10,14)):
 for stack in powerset((2,4,6,7,8,9,10)):
 	for press_stack in itertools.permutations(stack):
-		print "attempting: " + str(press_stack)
+		#print "attempting: " + str(press_stack)
 
 		pset = powerset(press_stack)
 		ret = combo_search( (), press_stack, combos)
-		print ret
+		#print ret
 
 		if len(press_stack) > 0 and press_stack[-1] == 7:
 
