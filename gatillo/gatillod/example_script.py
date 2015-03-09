@@ -42,7 +42,10 @@ press_combos = {
 	(9, 10): snare_kick,
 
 	(14,):  microbrute_sustain,
-	(4,10,6): kick,
+	(4,10,7): kick,
+	(4,9,7): kick,
+	(4,7):kick,
+	(2,7):kick,
 }
 
 release = {

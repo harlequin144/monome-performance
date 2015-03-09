@@ -51,48 +51,63 @@ def combo_search( combo_build, press_stack, combos):
 		print "combo_build: " + str( combo_build)
 		print "press_stack: " + str( press_stack)
 		print "combos: " +  str(combos)
-		print  ""
+		print ""
 
 	if press_stack == ():
+		#print "KILL CASE"
 		if () in combos:
+			#print "there"
 			return [combo_build]
 		else:
 			#print "here"
 			return []
 
 	elif combo_build == ():
+		#print "EMPTY COMBO_BUILD"
 		possible_combos = [c for c in combos if c[-1] == press_stack[-1]]
 
 		if len(possible_combos) != 0:
-			combo_build = (press_stack[-1],) 
 			pop_combos = map(pop, possible_combos)
 
-			list1 = combo_search(combo_build, pop(press_stack), pop_combos)
-			list2 = combo_search(combo_build, pop(pop(press_stack)), pop_combos)
+			
+			return combo_search((press_stack[-1],), pop(press_stack), pop_combos)
 
-			return list(set(maximal_elements( list1 + list2 )))
 		return []
 
 
 	else:
-		f = lambda x: x[-1] == press_stack[-1] 
-		possible_combos = filter(f, filter( lambda x: len(x) > 0, combos))
+		#print "ELSE"
+		right_size = lambda x: len(x) in range(1,len(press_stack) + 1)
+		last_element = lambda x: x[-1] == press_stack[-1] 
+		possible_combos = filter(right_size, combos)
+		possible_combos = filter(last_element, possible_combos)
 
 		if len(possible_combos) == 0:
-			list1 = combo_search(combo_build, pop(press_stack), combos)
-			list2 = combo_search(combo_build, pop(pop(press_stack)), combos)
+			#print "NO POSSIBLE COMBOS"
 
-			return list(set(maximal_elements( list1 + list2 )))
+			l = combo_search(combo_build, pop(press_stack), combos)
+			while len(press_stack) > 0:
+				l = l + combo_search(combo_build, pop(press_stack), combos)
+				press_stack = pop(press_stack)
+
+			return list(set(maximal_elements( l )))
 
 		else:
+			#print "POSSIBLE COMBOS"
+			orig = combo_build
 			combo_build = (press_stack[-1],) + combo_build
 			pop_combos = map(pop, possible_combos)
 
 			if () not in combos:
-				return combo_search( combo_build, pop(press_stack), pop_combos)
+				return combo_search(combo_build, pop(press_stack), pop_combos)
 
 			else:
-				return combo_search( combo_build, pop(press_stack), pop_combos + [()])
+				list1 = combo_search(combo_build, pop(press_stack), pop_combos)
+				list1 = list1 + [combo_build[1:]]
+				return list(set(maximal_elements( list1 )))
+
+
+
 
 
 
