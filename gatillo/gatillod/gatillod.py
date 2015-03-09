@@ -27,29 +27,18 @@ def maximal_elements(l):
 	
 
 def combo_search( combo_build, press_stack, combos):
-	if False:
-		print "combo_build: " + str( combo_build)
-		print "press_stack: " + str( press_stack)
-		print "combos: " +  str(combos)
-		print ""
-
 	if press_stack == ():
-		#print "KILL CASE"
 		if () in combos:
-			#print "there"
 			return [combo_build]
 		else:
-			#print "here"
 			return []
 
 	elif combo_build == ():
-		#print "EMPTY COMBO_BUILD"
+		# The last press must always part of the searched for combo
 		possible_combos = [c for c in combos if c[-1] == press_stack[-1]]
 
 		if len(possible_combos) != 0:
 			pop_combos = map(pop, possible_combos)
-
-			
 			return combo_search((press_stack[-1],), pop(press_stack), pop_combos)
 
 		return []
@@ -66,16 +55,14 @@ def combo_search( combo_build, press_stack, combos):
 		l = []
 		l = l + combo_search(combo_build, pop(press_stack), combos)
 
-		if len(possible_combos) == 0:
-
-			l = l + combo_search(combo_build, pop(press_stack), combos)
-
-		else:
+		if len(possible_combos) != 0:
 			combo_build = (press_stack[-1],) + combo_build
 
 			l = l + combo_search(combo_build, pop(press_stack), pop_combos)
 
 			if () in combos:
+				#	if () is in the combos, this means that the present combo_build was
+				#	a valid combo in the list
 				l = l + [combo_build[1:]]
 
 		return list(set(maximal_elements( l )))

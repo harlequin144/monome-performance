@@ -33,8 +33,8 @@ for press in combos:
 
 
 #for stack in powerset((1,2,3,4,6,7,8,9,10)):
-#for stack in powerset((2,4,6,7,8,9,10,14)):
-for stack in powerset((2,4,6,7,8,9,10)):
+for stack in powerset((2,4,6,7,8,9,10,14)):
+#for stack in powerset((2,4,6,7,8,9,10)):
 	for press_stack in itertools.permutations(stack):
 		#print "attempting: " + str(press_stack)
 
@@ -54,8 +54,6 @@ for stack in powerset((2,4,6,7,8,9,10)):
 				assert ret == [(4,9,7)]
 
 			else:
-
-
 				if (4,7) in pset and (1,7) in pset:
 					assert ret == [(4,7), (1,7)] or [(1,7), (4,7)]
 
@@ -102,15 +100,12 @@ for stack in powerset((2,4,6,7,8,9,10)):
 
 
 for stack in powerset((0,1,2,3,4,5,6,7,8,9)):
+	#print "attempting: " + str(stack)
+	ret = combo_search( (), stack + (10,), combos)
+	#print ret
 	if 9 in stack:
-		#print "attempting: " + str(stack)
-		ret = combo_search( (), stack + (10,), combos)
-		#print ret
 		assert ret == [(9,10)]
 	else:
-		#print "attempting: " + str(stack)
-		ret = combo_search( (), stack + (10,), combos)
-		#print ret
 		assert ret == []
 
 for stack in powerset((0,1,2,3,4,5,6,7,8)):

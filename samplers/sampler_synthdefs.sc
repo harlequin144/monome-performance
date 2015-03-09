@@ -1,5 +1,10 @@
 #!/usr/local/bin/sclang
 
+// Run this script with sclang to 'install' these synths. Remember the load
+// command compiles the synthdef into a file that is loaded everytime that the
+// synth is booted. 
+
+
 SynthDef(\dtrigger,
 	{ |bufnum, t_trig = 0, out = 0|
 		Out.ar(out, Pan2.ar(
@@ -8,6 +13,26 @@ SynthDef(\dtrigger,
 		))
 	}
 ).load;
+
+
+// Sampler ideas
+// 
+//	- trigger 
+// 		- start it and let it go
+//		- the sample can be stopped 
+//		- starting can be quantized
+//
+//	- randTrigger - trigger a random sample
+//	- toggleLoop
+//		- start a loop
+//		- don't stop until told to
+//
+//	- interval trigger
+//		- when on, trigger a sample at regular intervals with the transport
+// 
+// 
+//
+
 
 //SynthDef(\sampler,
 // 	{ |bufNum, startFrame, endFrame, len, rate = 1, t_trig|
