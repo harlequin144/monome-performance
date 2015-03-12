@@ -27,45 +27,45 @@ def maximal_elements(l):
 	
 
 def combo_search( combo_build, press_stack, combos):
-	if press_stack == ():
-		if () in combos:
-			return [combo_build]
-		else:
-			return []
+  if press_stack == ():
+    if () in combos: # () in combos implies that combo_build is a valid combo
+      return [combo_build]
+    else:
+      return []
 
-	elif combo_build == ():
-		# The last press must always part of the searched for combo
-		possible_combos = [c for c in combos if c[-1] == press_stack[-1]]
+  elif combo_build == ():
+    # The last element on the press stack is always part of the combo
+    combos = map(pop, [c for c in combos if c[-1] == press_stack[-1]])
 
-		if len(possible_combos) != 0:
-			pop_combos = map(pop, possible_combos)
-			return combo_search((press_stack[-1],), pop(press_stack), pop_combos)
+    if len(combos) != 0:
+      return combo_search((press_stack[-1],), pop(press_stack), combos)
+    else:
+      return []
 
-		return []
+
+  else:
+    # ()s and combos longer than press stack are not longer relavent 
+    by_size = lambda x: len(x) in range(1,len(press_stack) + 1)
+    by_last_element = lambda x: x[-1] == press_stack[-1] 
+
+    possible_combos = filter(by_size, combos)
+    possible_combos = filter(by_last_element, possible_combos)
 
 
-	else:
-		#print "ELSE"
-		right_size = lambda x: len(x) in range(1,len(press_stack) + 1)
-		last_element = lambda x: x[-1] == press_stack[-1] 
-		possible_combos = filter(right_size, combos)
-		possible_combos = filter(last_element, possible_combos)
-		pop_combos = map(pop, possible_combos)
+    l = []
+    # This call searches the combo list with the stack truncated once more.
+    l = l + combo_search(combo_build, pop(press_stack), combos)
 
-		l = []
-		l = l + combo_search(combo_build, pop(press_stack), combos)
+    if len(possible_combos) != 0:
+      combo_build = (press_stack[-1],) + combo_build
+      pop_combos = map(pop, possible_combos)
 
-		if len(possible_combos) != 0:
-			combo_build = (press_stack[-1],) + combo_build
+      l = l + combo_search(combo_build, pop(press_stack), pop_combos)
 
-			l = l + combo_search(combo_build, pop(press_stack), pop_combos)
+      if () in combos:
+			  l = l + [combo_build[1:]]
 
-			if () in combos:
-				#	if () is in the combos, this means that the present combo_build was
-				#	a valid combo in the list
-				l = l + [combo_build[1:]]
-
-		return list(set(maximal_elements( l )))
+    return list(set(maximal_elements( l )))
 
 
 
