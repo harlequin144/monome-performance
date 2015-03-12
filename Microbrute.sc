@@ -1,6 +1,5 @@
 
-//MIDIDevice : AbstractDevice {
-MonophonicMIDIDevice : MIDIOut {
+Microbrute : MIDIOut {
 
 	//var pitchRange = 12;
 

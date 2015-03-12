@@ -1,5 +1,13 @@
 s.boot
 s.shutdown
+
+
+// Three kinds of samplers:
+// - triggers
+// - loopers
+// - pitched
+
+
 (
 var drum_set_path = "/home/dylan/music/samples/VintageDrumSamples24bit/Roland TR-808";
 
@@ -25,9 +33,22 @@ var ride_buf = Buffer.read(s, drum_set_path +/+ "TR-808Ride01.wav");
 )
 
 
-~hato.gollli
+
+~hato.go
 ~ride.go
 
-"arbeit".scramble.asSymbol;
+~trigger = Trigger(transportport, path);
 
-("poo" ++ 3 ++ "asd")
+~trigger.addBuff(\name, path );
+~trigger.addBuff(\name, path );
+~trigger.addBuff(\name, path );
+~trigger.addBuff(\name, path );
+
+~trigger.addTrigger(\name);
+~trigger.addTrigger(\name, quantize, interval)
+~trigger.addTrigger([\name], quantize, interval)
+
+
+"/sc/trigger/trig", "name"
+"/sc/trigger/kill", "name"
+

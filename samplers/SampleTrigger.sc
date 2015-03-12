@@ -1,5 +1,5 @@
 
-STrigger { //sample trigger
+Trigger { //sample trigger
 
 /*
  * Behavior:
@@ -10,30 +10,80 @@ STrigger { //sample trigger
  *
  */
 
- classvar instance_num = 0;
+    classvar instance_num = 0;
 	
- var sample_buffer;
- var synth;
- var path = "";
+    var sample_buffer;
 
- *new {| buffer, osc_responder_path |
+    //var triggers
+	//RTrigger
+    //ITrigger
+    
+    var synth;
+    var path = "";
+    var trans_on = false;
+    var awaiting_trigger = false;
+
+ *new {|buffer, osc_responder_path, transportPort = 8001, quantize = 0|
 	 instance_num = instance_num + 1;
 
-	 ^super.new.init(buffer, osc_responder_path );
+	 ^super.new.init(buffer, osc_responder_path, transportPort, quantize);
  }
 
- init {| buffer, osc_responder_path |
+ init {|buffer, osc_responder_path, transportPort = 8001, quantize = 0|
 	sample_buffer = buffer;
 
-	synth = Synth(\dtrigger, [\bufnum, sample_buffer]);
+	synth = Synth(\sampletrigger, [\bufnum, sample_buffer]);
 	path = osc_responder_path;
 
-	if( path != "" )
-	{ OSCdef( ("trigger" ++ instance_num ++ "oscresp").asSymbol, 
-	{ synth.set(\t_trig, 1) }, path ) };
+	// transport listening
+
+	if( path != "" ) { 
+		OSCdef( 
+			("trigger" ++ instance_num ++ "oscresp").asSymbol, 
+			{ 
+				if( trans_on )
+				{ awaiting_trigger = true }
+				{ synth.set(\t_trig, 1) }
+			}, 
+			path 
+		) 
+	};
+
+	if( quantize != 0 ){
+		OSCdef( 
+			("trigger" ++ instance_num ++ "trans_stop").asSymbol, 
+			{ 
+				trans_on = false;
+				awaiting_trigger = false;
+			}, 
+			path +/+ "transport/stop"
+		);
+
+		OSCdef( 
+			("trigger" ++ instance_num ++ "tickresp").asSymbol, 
+			{|msg| 
+				trans_on = true;
+				this.tickResponder(msg[1]);
+
+			}, 
+			path +/+ "transport/tick"
+		);
+
+		//transport.sendMsg("/transport/add_tick_client", 57120, "/sc/trigger");
+	}
  }
 
  go {
 	 synth.set(\t_trig, 1);
  }
+
+ tick_responder {|tick|
+	 //if( quantize > 0 ){
+		 //if( awaiting_trigger && trans_on )
+         //{}
+//
+	 //}
+ }
+
 }
+

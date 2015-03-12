@@ -1,6 +1,8 @@
 
 This directory, is intended to be used as a place to develop code for making
-programs that are used to compose, or perform music. 
+programs that are used to compose, or perform music. The programs and scripts
+within the directory are all built to work together to make a working
+proformace musical instrument.
 
 performance scripts are scripts that are meant to be used during performance.
 This includes setup and changing program parameters, etc..

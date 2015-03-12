@@ -5,7 +5,7 @@
 // synth is booted. 
 
 
-SynthDef(\dtrigger,
+SynthDef(\sampletrigger,
 	{ |bufnum, t_trig = 0, out = 0|
 		Out.ar(out, Pan2.ar(
 			PlayBuf.ar(1, bufnum, BufRateScale.kr(bufnum), t_trig, 0,
@@ -22,13 +22,15 @@ SynthDef(\dtrigger,
 //		- the sample can be stopped 
 //		- starting can be quantized
 //
+//	- interval trigger
+//		- when on, trigger a sample at regular intervals with the transport
+//
 //	- randTrigger - trigger a random sample
+//
 //	- toggleLoop
 //		- start a loop
 //		- don't stop until told to
 //
-//	- interval trigger
-//		- when on, trigger a sample at regular intervals with the transport
 // 
 // 
 //
