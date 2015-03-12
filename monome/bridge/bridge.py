@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 
+
 import sys
 sys.path.insert(0, '/home/dylan/.config/bridge')
 
-#import ConfigParser
 
 import bridge_config
-
 from Bridge import *
 
 
@@ -23,6 +22,4 @@ if __name__ == "__main__":
 		)
 
 	bridge.run()
-
-	#bridge.free()
 

@@ -4,6 +4,7 @@ import sys
 import curses
 
 from collections import deque
+from types import *
 from Monome import *
 from Client import *
 
@@ -11,6 +12,7 @@ from Client import *
 class Bridge(liblo.Server):
 	def __init__(self, 
 			server_port, top_clients, mid_clients, bot_clients):
+		assert isinstance(server_port, int), 'server_port should be an int'
 
 		liblo.Server.__init__(self, server_port)
 
