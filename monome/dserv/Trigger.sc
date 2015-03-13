@@ -6,7 +6,7 @@
 //n.set(\t_trig, 1)
 
 
-Trigger {
+OldddTrigger {
 
 	//classvar numMicronomes;
 	const path = "/sc/trigger";

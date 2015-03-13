@@ -74,33 +74,33 @@ def combo_search( combo_build, press_stack, combos):
 
 
 def response_loop(ser, press_combos, release):
-	press_stack = ()
+  press_stack = ()
 
-	while( True ):
-		try:
-			read = ser.read(2)
-			if len(read) == 2:
-				pin = ord(read[0])
-				state = ord(read[1])
+  while( True ):
+    try:
+      read = ser.read(2)
+      if len(read) == 2:
+        pin = ord(read[0])
+        state = ord(read[1])
 				#print 'pin ' + str(pin) + " to " + str(state)
-				if state == 1:
-					press_stack = press_stack + (pin, )
+        if state == 1:
+          press_stack = press_stack + (pin, )
 
-					key = combo_search((), press_stack, press_combos.keys())
-					print key
-					#if key != ():
-						#press_combos[ key ]()
+          keys = combo_search((), press_stack, press_combos.keys())
+          print keys
+          for key in keys:
+            press_combos[ key ]()
 
 
-				elif state == 0:
-					press_stack = remove_all(press_stack, pin)
+        elif state == 0:
+          press_stack = remove_all(press_stack, pin)
 
 				#	if pin in release.keys():
 				#		release[pin]()
 
-		except serial.SerialException:
-			print "Serial Exception! The port appears to have been closed"
-			break
+    except serial.SerialException:
+      print "Serial Exception! The port appears to have been closed"
+      break
 
 
 def look_for_device( desc, teensy_id):

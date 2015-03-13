@@ -4,19 +4,19 @@ from gatillod import look_for_device, response_loop
 
 
 def snare():
-	send(57120, "/sc/sampler/snare")
-	print "snare"
+  send(57120, "/sc/trigger/pull", "snare")
+  print "snare"
 
 def kick():
-	send(57120, "/sc/sampler/kick")
+	send(57120, "/sc/trigger/kick")
 	print "kick"
 
 def hatc():
-	send(57120, "/sc/sampler/hatc")
+	send(57120, "/sc/trigger/hatc")
 	print "hatc"
 	
 def ride():
-	send(57120, "/sc/sampler/ride")
+	send(57120, "/sc/trigger/ride")
 	print "ride"
 
 def snare_kick():
@@ -62,15 +62,6 @@ release = {
 teensy_id = "USB VID:PID=16c0:0483 SNR=725240"
 
 
-
-release = {
-		}
-
 while(True):
 	device = look_for_device("/dev/ttyButtonBox", teensy_id)
 	response_loop(device, press_combos, release)
-
-
-
-
-

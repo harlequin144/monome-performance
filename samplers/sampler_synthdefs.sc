@@ -9,7 +9,7 @@ SynthDef(\sampletrigger,
 	{ |bufnum, t_trig = 0, out = 0|
 		Out.ar(out, Pan2.ar(
 			PlayBuf.ar(1, bufnum, BufRateScale.kr(bufnum), t_trig, 0,
-			doneAction: 0)
+			doneAction: 2)
 		))
 	}
 ).load;
