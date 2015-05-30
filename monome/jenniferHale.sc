@@ -139,7 +139,7 @@ OSCdef(\jenniferhale_press,
 	}, '/sc/jenniferhale/grid/key');
 
 OSCdef(\jenniferhale_show, {
-	bridge.sendMsg("/sc/jenniferhale/grid/led/map",0,0,
+	bridge.sendMsg("/sc/jenniferhale/grid/led/map", 0, 0,
 		0,102,102,0,0,102,102,0);
 	bridge.sendMsg("/sc/jenniferhale/grid/led/map", 8, 0,
 		128,38,102,0,0,102,102,0);

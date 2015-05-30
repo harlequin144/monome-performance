@@ -6,14 +6,9 @@ Server.local.makeGui
 // - pitched
 // ????? build/loop sampler
 
-//var snare_buf = Buffer.read(s, drum_set_path +/+ "TR-808Snare01.wav");
-//var kick_buf = Buffer.read(s, drum_set_path +/+ "TR-808Kick03.wav");
-//var hato_buf = Buffer.read(s, drum_set_path +/+ "TR-808Hat_O01.wav");
-//var hatc_buf = Buffer.read(s, drum_set_path +/+ "TR-808Hat_C01.wav");
-//var ride_buf = Buffer.read(s, drum_set_path +/+ "TR-808Ride01.wav");
 
 
-
+do
 
 
 
@@ -28,20 +23,19 @@ s.boot
 (
 var drum_set_path = "/home/dylan/music/samples/VintageDrumSamples24bit/Roland TR-808";
 
+var snare = Buffer.read(s, drum_set_path +/+ "TR-808Snare01.wav");
+var kick = Buffer.read(s, drum_set_path +/+ "TR-808Kick03.wav");
+var hato = Buffer.read(s, drum_set_path +/+ "TR-808Hat_O01.wav");
+var hatc = Buffer.read(s, drum_set_path +/+ "TR-808Hat_C01.wav");
+var ride = Buffer.read(s, drum_set_path +/+ "TR-808Ride01.wav");
+
 ~trigger = Trigger("/sc/trigger");
 
-~trigger.addBuffer(\snare, drum_set_path +/+ "TR-808Snare01.wav");
-//~trigger.addBuffer(\kick, drum_set_path +/+ "TR-808Kick03.wav");
-//~trigger.addBuffer(\hat0, drum_set_path +/+ "TR-808Hat_O01.wav");
-//~trigger.addBuffer(\hatc, drum_set_path +/+ "TR-808Hat_C01.wav");
-
-//~trigger.triggers[\snare]
-
-
-
-~trigger.addTrigger(\snare, \snare);
-//~trigger.addTrigger(\name, quantize, interval)
-//~trigger.addTrigger([\name], quantize, interval)
+~trigger.addTrigger(\snare, [snare]);
+~trigger.addTrigger(\kick, [kick])
+~trigger.addTrigger(\hato, [hato])
+//~trigger.addTrigger(\kick, quantize, interval)
+//~trigger.addTrigger(\hato, quantize, interval)
 
 
 //"/sc/trigger/trig", "name"

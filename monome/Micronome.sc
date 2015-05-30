@@ -60,7 +60,7 @@ Micronome {
 		noteStack = LinkedList[];
 
  		seq = Array[
-			LinkedList[60],LinkedList[60],LinkedList[60],LinkedList[60] ];
+			  LinkedList[60],LinkedList[60],LinkedList[60],LinkedList[60] ];
 
 		midiOut.control(0,105, 127);  // Seq Play hold to off
 		midiOut.control(0, 109,0);
