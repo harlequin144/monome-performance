@@ -176,8 +176,10 @@ Micronome {
 
 		case
 		{ seqState == 0 }{ 	//free mode
+			noteStack.postln;
 			midiOut.killNotesOn();
 			midiOut.noteOn(note);
+			noteStack.postln;
 		}
 
 		{ seqState == 1 }{ // record mode
@@ -249,9 +251,19 @@ Micronome {
 
 			// More than one on stack and letting go of one playing now
 			{ note == currentlyPlayingNote }{
+				"In seqState == 0, note == currentlyPlayingNote".postln;
+				"note:".postln;
+				note.postln;
 				midiOut.noteOff(note);
+				"noteStack before remove:".postln;
+				noteStack.postln;
 				noteStack.remove(note);
-				midiOut.noteOn(noteStack.last())
+				"noteStack after remove:".postln;
+				noteStack.postln;
+				if (noteStack.size > 0)
+				{
+				  midiOut.noteOn(noteStack.last());
+				};
 			}
 
 			// More than one on stack and not letting go of playing note
